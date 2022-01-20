@@ -1,20 +1,23 @@
 //The purpose of this controller is to pull data out, validate it, and then send to services
-const {INVALID_COMMAND, VALID_CHAMPIONS_LIST, VALID_POSITIONS_LIST} = require("../utils/GlobalConstants");
+const {INVALID_COMMAND, VALID_CHAMPIONS_LIST, VALID_POSITIONS_LIST, INTERNAL_ERROR} = require("../utils/GlobalConstants");
+const {championBuildService} = require("../services/ChampionBuildService");
 let prefix = process.env.PREFIX
+
+let champPosArr;
 
 async function parseMessage(message) {
     //in this case, the controller really only has one service to route to
     //but once I add other user commands this will have to change
-
     if(isValidCommand(message)) {
-        console.log('nice');
+        if(champPosArr) {
+            await championBuildService.fetchAndProcessChampionData(champPosArr);
+        } else {
+            return INTERNAL_ERROR;
+        }
     } else {
         return INVALID_COMMAND;
     }
 
-}
-
-function isSearchingForChampionData(message) {
 }
 
 function isValidCommand(message) {
@@ -34,13 +37,19 @@ function isValidCommand(message) {
 
     if(messageArr.length === 1) {
         let champion = messageArr[0].toLowerCase();
-        return validChampion(champion);
+        if(validChampion(champion)) {
+            champPosArr = messageArr;
+            return true;
+        } else {
+            return false;
+        }
     } else {
         let champion = messageArr[0].toLowerCase();
         let position = messageArr[1].toLowerCase();
 
         if(validChampion(champion)) {
             if(validPosition(position)) {
+                champPosArr = messageArr;
                 return true;
             }
         } else {

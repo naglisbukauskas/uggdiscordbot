@@ -1,5 +1,7 @@
 let INVALID_COMMAND = "Invalid Command - Valid Format: ?? champion position";
+let INTERNAL_ERROR = "Internal Error";
 let VALID_COMMAND = "Valid Command - You shouldn't see this";
+let BASE_UGG_URI = "https://u.gg/lol/champions/";
 let VALID_CHAMPIONS_LIST = [
     'aatrox',       'ahri',         'akali',        'alistar',
     'amumu',        'anivia',       'annie',        'aphelios',
@@ -47,6 +49,9 @@ let VALID_POSITIONS_LIST = ['top','middle','mid','jg','jungle','adc','bot','bott
 
 module.exports = {
     INVALID_COMMAND,
+    INTERNAL_ERROR,
+    VALID_COMMAND,
+    BASE_UGG_URI,
     VALID_CHAMPIONS_LIST,
     VALID_POSITIONS_LIST
 }
