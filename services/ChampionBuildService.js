@@ -32,6 +32,7 @@ async function fetchAndProcessChampionData(message) {
         // }, 'div.rune-tree_v2');
         //TODO: CAN GET STARTING ITEMS OFF OF BACKGROUND POSITION
         //TODO: OR WE LOOK AT HOVER;
+        //TODO: ITEM NAMES WILL HAVE TO BE A LIST OF HOVERS
 
         const data = await page.evaluate((selector) => {
             return {
