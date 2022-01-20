@@ -23,6 +23,7 @@ client.on("messageCreate", async (message) => {
     let response;
     await messageRouter.routeMessage(message).then(resMessage => {
         response = resMessage;
+        console.log('RESPONSE: ' + response);
         if(response) {
             client.channels.cache.get(message['channelId']).send(response);
         }

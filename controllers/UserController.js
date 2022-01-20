@@ -3,57 +3,77 @@ const {INVALID_COMMAND, VALID_CHAMPIONS_LIST, VALID_POSITIONS_LIST} = require(".
 let prefix = process.env.PREFIX
 
 async function parseMessage(message) {
-    //for now we'll have to validate the message
-    if(isValidCommand(message)) {
+    //in this case, the controller really only has one service to route to
+    //but once I add other user commands this will have to change
 
+    if(isValidCommand(message)) {
+        console.log('nice');
     } else {
         return INVALID_COMMAND;
     }
 
-
-    //
-    // if(isSearchingForChampionData(message)) {
-    //
-    // }
 }
 
 function isSearchingForChampionData(message) {
 }
 
 function isValidCommand(message) {
-    //we know the message already starts with ??
-    //Ex: ??Vayne Top
-    //What about: ?? Vayne Top
-    //What about just Vayne
-
     let messageContent = message['content'];
-
     messageContent = messageContent.replace(prefix, "");
+
     let messageArr = new Set(messageContent.split(" "));
     messageArr.delete(" ");
     messageArr.delete('');
-    messageArr = Array.from(messageArr);
 
-    //TODO: refactor this so that I'm not calling toLowerCase on all of these
-    //Crazy normalization function
+    messageArr = Array.from(messageArr);
+    messageArr = normalizeInput(messageArr);
+
+    if(messageArr.length > 2) {
+        return false;
+    }
+
+    if(messageArr.length === 1) {
+        let champion = messageArr[0].toLowerCase();
+        return validChampion(champion);
+    } else {
+        let champion = messageArr[0].toLowerCase();
+        let position = messageArr[1].toLowerCase();
+
+        if(validChampion(champion)) {
+            if(validPosition(position)) {
+                return true;
+            }
+        } else {
+            return false;
+        }
+    }
+
+}
+
+function validChampion(champion) {
+    champion = champion.toLowerCase();
+    return VALID_CHAMPIONS_LIST.includes(champion);
+}
+
+function validPosition(position) {
+    position = position.toLowerCase();
+    return VALID_POSITIONS_LIST.includes(position);
+}
+
+function normalizeInput(messageArr) {
+
+    //Todo: This is extremely brute force. I think I can make this better by grouping similar names (twisted fate, lee sin, xin zhao, etc,) and their functionality
+
     let firstItemToCheck = '';
     let secondItemToCheck = '';
 
-    if(messageArr[0]) {
-        firstItemToCheck = messageArr[0].toLowerCase();
-    }
-
-    if(messageArr[1]) {
-        secondItemToCheck = messageArr[1].toLowerCase();
-    }
+    if(messageArr[0]) firstItemToCheck = messageArr[0].toLowerCase();
+    if(messageArr[1]) secondItemToCheck = messageArr[1].toLowerCase();
 
     if(firstItemToCheck === "nunu"
         || secondItemToCheck === "willump"
         || secondItemToCheck === "and"
         || secondItemToCheck === '&') {
-
-        console.log('inside nunu check');
-        console.log(messageArr);
 
         if(messageArr.length > 1) {
             let position = messageArr[messageArr.length - 1];
@@ -95,10 +115,8 @@ function isValidCommand(message) {
             }
         } else if(firstItemToCheck === 'aurelion' && secondItemToCheck === 'sol') {
             messageArr = ['aurelion sol'];
-            console.log(messageArr);
         } else {
             messageArr = ['aurelion sol'];
-            console.log(messageArr);
         }
     } else if(firstItemToCheck === "chogath"
         || firstItemToCheck === "cho"
@@ -106,60 +124,302 @@ function isValidCommand(message) {
         || secondItemToCheck === 'gath'
         || firstItemToCheck === "cho'"
         || secondItemToCheck === "'gath") {
-
-        console.log('inside cho gath check');
-
-    }
-
-    console.log(2, messageArr);
-
-
-    if(messageArr.length > 2) {
-        return false;
-    }
-
-    if(messageArr.length === 1) {
-        console.log(messageArr);
-        let champion = messageArr[0].toLowerCase();
-        if(validChampion(champion)) {
-            console.log('VALID CHAMPION');
+        if (messageArr.length > 2 && secondItemToCheck === 'gath') {
+            let position = messageArr[messageArr.length - 1];
+            if (validPosition(position)) {
+                messageArr = ["cho'gath", position]
+            } else {
+                return false;
+            }
+        } else if(firstItemToCheck === 'cho' && messageArr.length === 2) {
+            let position = messageArr[messageArr.length - 1];
+            if (validPosition(position)) {
+                messageArr = ["cho'gath", position]
+            } else {
+                return false;
+            }
+        } else if(messageArr.length === 2 && (firstItemToCheck === "chogath" || firstItemToCheck === "cho'gath") && validPosition(secondItemToCheck))  {
+            messageArr = ["cho'gath", secondItemToCheck]
+        } else if((firstItemToCheck === 'cho' || firstItemToCheck === "cho'") && secondItemToCheck === 'gath') {
+            messageArr = ["cho'gath"];
         } else {
-            console.log('INVALID CHAMPION');
+            messageArr = ["cho'gath"];
         }
-        return true;
-    } else {
-        let champion = messageArr[0].toLowerCase();
-        let position = messageArr[1].toLowerCase();
+    } else if(firstItemToCheck === "jarvan"
+        || secondItemToCheck === "iv"
+        || firstItemToCheck === "jarvaniv"
+        || firstItemToCheck === "j4"
+        || secondItemToCheck === '4') {
 
-        console.log(VALID_CHAMPIONS_LIST.length);
-        return true;
+        if(messageArr.length > 2 && (secondItemToCheck === 'iv' || secondItemToCheck === '4')) {
+            let position = messageArr[messageArr.length - 1];
+            if (validPosition(position)) {
+                messageArr = ['jarvan iv', position]
+            } else {
+                return false;
+            }
+        } else if(messageArr.length === 2 && (firstItemToCheck === 'j4' || firstItemToCheck === 'jarvan') && validPosition(secondItemToCheck))  {
+            messageArr = ['jarvan iv', secondItemToCheck]
+        } else if(firstItemToCheck === 'jarvan' && (secondItemToCheck === 'iv' || secondItemToCheck === '4')) {
+            messageArr = ['jarvan iv'];
+        } else {
+            messageArr = ['jarvan iv'];
+        }
+    } else if(firstItemToCheck === "kaisa"
+        || firstItemToCheck === "kai"
+        || (secondItemToCheck === '\'' && firstItemToCheck === "kai")
+        || secondItemToCheck === 'sa'
+        || firstItemToCheck === "kai'"
+        || secondItemToCheck === "'sa") {
+
+
+        if (messageArr.length > 2 && secondItemToCheck === 'sa') {
+            let position = messageArr[messageArr.length - 1];
+            if (validPosition(position)) {
+                messageArr = ["kai'sa", position]
+            } else {
+                return false;
+            }
+        } else if(firstItemToCheck === 'kai' && messageArr.length > 2) {
+            let position = messageArr[messageArr.length - 1];
+            if (validPosition(position)) {
+                messageArr = ["kai'sa", position]
+            } else {
+                return false;
+            }
+        } else if(messageArr.length === 2 && (firstItemToCheck === 'kaisa' || firstItemToCheck === "kai'sa") && validPosition(secondItemToCheck))  {
+            messageArr = ["kai'sa", secondItemToCheck]
+        } else if((firstItemToCheck === 'kai' || firstItemToCheck === "kai'") && secondItemToCheck === 'sa') {
+            messageArr = ["kai'sa"];
+        } else {
+            messageArr = ["kai'sa"];
+        }
+    } else if(firstItemToCheck === "khazix"
+        || firstItemToCheck === "kha"
+        || (secondItemToCheck === '\'' && firstItemToCheck === "kha")
+        || secondItemToCheck === 'zix'
+        || firstItemToCheck === "kha'"
+        || secondItemToCheck === "'zix") {
+
+        if (messageArr.length > 2 && secondItemToCheck === 'zix') {
+            let position = messageArr[messageArr.length - 1];
+            if (validPosition(position)) {
+                messageArr = ["kha'zix", position]
+            } else {
+                return false;
+            }
+        } else if(firstItemToCheck === 'kha' && messageArr.length > 2) {
+            let position = messageArr[messageArr.length - 1];
+            if (validPosition(position)) {
+                messageArr = ["kha'zix", position]
+            } else {
+                return false;
+            }
+        } else if(messageArr.length === 2 && (firstItemToCheck === 'khazix' || firstItemToCheck === "kha'zix" || firstItemToCheck === "kha") && validPosition(secondItemToCheck))  {
+            messageArr = ["kha'zix", secondItemToCheck]
+        } else if((firstItemToCheck === 'kha' || firstItemToCheck === "kha'") && secondItemToCheck === 'zix') {
+            messageArr = ["kha'zix"];
+        } else {
+            messageArr = ["kha'zix"];
+        }
+    } else if(firstItemToCheck === "kogmaw"
+        || firstItemToCheck === "kog"
+        || (secondItemToCheck === '\'' && firstItemToCheck === "kog")
+        || secondItemToCheck === 'maw'
+        || firstItemToCheck === "kog'"
+        || secondItemToCheck === "'maw") {
+
+        if (messageArr.length > 2 && secondItemToCheck === 'maw') {
+            let position = messageArr[messageArr.length - 1];
+            if (validPosition(position)) {
+                messageArr = ["kog'maw", position]
+            } else {
+                return false;
+            }
+        } else if(firstItemToCheck === 'kog' && messageArr.length > 2) {
+            let position = messageArr[messageArr.length - 1];
+            if (validPosition(position)) {
+                messageArr = ["kog'maw", position]
+            } else {
+                return false;
+            }
+        } else if(messageArr.length === 2 && (firstItemToCheck === 'kogmaw' || firstItemToCheck === "kog'maw" || firstItemToCheck === "kog") && validPosition(secondItemToCheck))  {
+            messageArr = ["kog'maw", secondItemToCheck]
+        } else if((firstItemToCheck === 'kog' || firstItemToCheck === "kog'") && secondItemToCheck === 'maw') {
+            messageArr = ["kog'maw"];
+        } else {
+            messageArr = ["kog'maw"];
+        }
+    } else if(firstItemToCheck === "lee"
+        || secondItemToCheck === "sin"
+        || firstItemToCheck === "leesin") {
+
+        if(messageArr.length > 2 && secondItemToCheck === 'sin') {
+            let position = messageArr[messageArr.length - 1];
+            if (validPosition(position)) {
+                messageArr = ['lee sin', position]
+            } else {
+                return false;
+            }
+        } else if(firstItemToCheck === 'lee' && secondItemToCheck === 'sin') {
+            messageArr = ['lee sin'];
+        } else if(firstItemToCheck === 'lee' && validPosition(secondItemToCheck)) {
+            messageArr = ['lee sin', secondItemToCheck];
+        } else {
+            messageArr = ['lee sin'];
+        }
+    } else if(firstItemToCheck === "master"
+        || secondItemToCheck === "yi"
+        || firstItemToCheck === "masteryi"
+        || firstItemToCheck === "yi") {
+
+        if(messageArr.length > 2 && secondItemToCheck === 'yi') {
+            let position = messageArr[messageArr.length - 1];
+            if (validPosition(position)) {
+                messageArr = ['master yi', position]
+            } else {
+                return false;
+            }
+        } else if(firstItemToCheck === 'master' && secondItemToCheck === 'yi') {
+            messageArr = ['master yi'];
+        } else if(firstItemToCheck === 'yi' && validPosition(secondItemToCheck)) {
+            messageArr = ['master yi', secondItemToCheck];
+        } else {
+            messageArr = ['master yi'];
+        }
+    } else if(firstItemToCheck === "miss"
+        || secondItemToCheck === "fortune"
+        || firstItemToCheck === "missfortune"
+        || firstItemToCheck === "mf") {
+
+        if(messageArr.length > 2 && secondItemToCheck === 'fortune') {
+            let position = messageArr[messageArr.length - 1];
+            if (validPosition(position)) {
+                messageArr = ['miss fortune', position]
+            } else {
+                return false;
+            }
+        } else if(firstItemToCheck === 'miss' && secondItemToCheck === 'fortune') {
+            messageArr = ['miss fortune'];
+        } else if(firstItemToCheck === 'mf' && validPosition(secondItemToCheck)) {
+            messageArr = ['miss fortune', secondItemToCheck];
+        } else {
+            messageArr = ['miss fortune'];
+        }
+    } else if(firstItemToCheck === "reksai"
+    || firstItemToCheck === "rek"
+    || (secondItemToCheck === '\'' && firstItemToCheck === "rek")
+    || secondItemToCheck === 'sai'
+    || firstItemToCheck === "rek'"
+    || secondItemToCheck === "'sai") {
+
+        if (messageArr.length > 2 && secondItemToCheck === 'sai') {
+            let position = messageArr[messageArr.length - 1];
+            if (validPosition(position)) {
+                messageArr = ["rek'sai", position]
+            } else {
+                return false;
+            }
+        } else if (firstItemToCheck === 'rek' && messageArr.length > 2) {
+            let position = messageArr[messageArr.length - 1];
+            if (validPosition(position)) {
+                messageArr = ["rek'sai", position]
+            } else {
+                return false;
+            }
+        } else if (messageArr.length === 2 && (firstItemToCheck === 'reksai' || firstItemToCheck === "rek'sai" || firstItemToCheck === "rek") && validPosition(secondItemToCheck)) {
+            messageArr = ["rek'sai", secondItemToCheck]
+        } else if ((firstItemToCheck === 'rek' || firstItemToCheck === "rek'") && secondItemToCheck === 'sai') {
+            messageArr = ["rek'sai"];
+        } else {
+            messageArr = ["rek'sai"];
+        }
+    } else if(firstItemToCheck === "tahm"
+        || secondItemToCheck === "kench"
+        || firstItemToCheck === "tahmkench") {
+
+        if(messageArr.length > 2 && secondItemToCheck === 'kench') {
+            let position = messageArr[messageArr.length - 1];
+            if (validPosition(position)) {
+                messageArr = ['tahm kench', position]
+            } else {
+                return false;
+            }
+        } else if(firstItemToCheck === 'tahm' && secondItemToCheck === 'kench') {
+            messageArr = ['tahm kench'];
+        } else if(firstItemToCheck === 'tahm' && validPosition(secondItemToCheck)) {
+            messageArr = ['tahm kench', secondItemToCheck];
+        } else {
+            messageArr = ['tahm kench'];
+        }
+    } else if(firstItemToCheck === "twisted"
+        || secondItemToCheck === "fate"
+        || firstItemToCheck === "twistedfate"
+        || firstItemToCheck === "tf") {
+
+        if(messageArr.length > 2 && secondItemToCheck === 'fate') {
+            let position = messageArr[messageArr.length - 1];
+            if (validPosition(position)) {
+                messageArr = ['twisted fate', position]
+            } else {
+                return false;
+            }
+        } else if(firstItemToCheck === 'twisted' && secondItemToCheck === 'fate') {
+            messageArr = ['twisted fate'];
+        } else if(firstItemToCheck === 'tf' && validPosition(secondItemToCheck)) {
+            messageArr = ['twisted fate', secondItemToCheck];
+        } else {
+            messageArr = ['twisted fate'];
+        }
+    }  else if(firstItemToCheck === "velkoz"
+        || firstItemToCheck === "vel"
+        || (secondItemToCheck === '\'' && firstItemToCheck === "vel")
+        || secondItemToCheck === 'koz'
+        || firstItemToCheck === "vel'"
+        || secondItemToCheck === "'koz") {
+
+        if (messageArr.length > 2 && secondItemToCheck === 'koz') {
+            let position = messageArr[messageArr.length - 1];
+            if (validPosition(position)) {
+                messageArr = ["vel'koz", position]
+            } else {
+                return false;
+            }
+        } else if (firstItemToCheck === 'vel' && messageArr.length > 2) {
+            let position = messageArr[messageArr.length - 1];
+            if (validPosition(position)) {
+                messageArr = ["vel'koz", position]
+            } else {
+                return false;
+            }
+        } else if (messageArr.length === 2 && (firstItemToCheck === 'velkoz' || firstItemToCheck === "vel'koz" || firstItemToCheck === "vel") && validPosition(secondItemToCheck)) {
+            messageArr = ["vel'koz", secondItemToCheck]
+        } else if ((firstItemToCheck === 'vel' || firstItemToCheck === "vel'") && secondItemToCheck === 'koz') {
+            messageArr = ["vel'koz"];
+        } else {
+            messageArr = ["vel'koz"];
+        }
+    }  else if(firstItemToCheck === "xin"
+        || secondItemToCheck === "zhao"
+        || firstItemToCheck === "xinzhao") {
+
+        if(messageArr.length > 2 && secondItemToCheck === 'zhao') {
+            let position = messageArr[messageArr.length - 1];
+            if (validPosition(position)) {
+                messageArr = ['xin zhao', position]
+            } else {
+                return false;
+            }
+        } else if(firstItemToCheck === 'xin' && secondItemToCheck === 'zhao') {
+            messageArr = ['xin zhao'];
+        } else if(firstItemToCheck === 'xin' && validPosition(secondItemToCheck)) {
+            messageArr = ['xin zhao', secondItemToCheck];
+        } else {
+            messageArr = ['xin zhao'];
+        }
     }
 
-}
-
-function validChampion(champion) {
-    //TODO: This is so bad lol. Maybe I do this in the call to the API instead?
-    champion = champion.toLowerCase();
-
-
-    if(VALID_CHAMPIONS_LIST.includes(champion)) {
-        return true;
-    } else {
-        return false;
-    }
-
-
-}
-
-function validPosition(position) {
-    position = position.toLowerCase();
-
-    if(VALID_POSITIONS_LIST.includes(position)) {
-        return true;
-    } else {
-        return false;
-    }
-
+    return messageArr;
 }
 
 

@@ -1,4 +1,5 @@
 let INVALID_COMMAND = "Invalid Command - Valid Format: ?? champion position";
+let VALID_COMMAND = "Valid Command - You shouldn't see this";
 let VALID_CHAMPIONS_LIST = [
     'aatrox',       'ahri',         'akali',        'alistar',
     'amumu',        'anivia',       'annie',        'aphelios',
