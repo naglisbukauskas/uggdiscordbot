@@ -1,0 +1,19 @@
+{
+  "name": "uggbot",
+  "version": "1.0.0",
+  "description": "U.GG Bot",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Naglis Bukauskas",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.24.0",
+    "cheerio": "^1.0.0-rc.10",
+    "discord.js": "^13.6.0",
+    "dotenv": "^14.2.0",
+    "jsdom": "^19.0.0",
+    "puppeteer": "^13.1.1"
+  }
+}
