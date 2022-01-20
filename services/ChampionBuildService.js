@@ -31,13 +31,15 @@ async function fetchAndProcessChampionData(message) {
         //     };
         // }, 'div.rune-tree_v2');
         //TODO: CAN GET STARTING ITEMS OFF OF BACKGROUND POSITION
+        //TODO: OR WE LOOK AT HOVER;
 
         const data = await page.evaluate((selector) => {
             return {
                 // keystone: document.querySelector('div.perk.keystone.perk-active').innerHTML,
                 runes: Array.from(document.querySelectorAll('div.perk.perk-active')).map(x => x.innerHTML).splice(0, 6),
                 shards: Array.from(document.querySelectorAll('div.shard.shard-active')).map(x => x.innerHTML).splice(0, 3),
-                startingItems: Array.from(document.querySelectorAll('div.item-dupe')).map(x => x.innerHTML)
+                startingItems: Array.from(document.querySelectorAll('div.item-dupe')).map(x => x.innerHTML),
+                curious: Array.from(document.querySelectorAll('div.tooltip-portal')).map(x => x.innerHTML)
 
             };
         }, 'div.perk.keystone.perk-active');
