@@ -30,10 +30,14 @@ async function fetchAndProcessChampionData(message) {
         //         body: document.querySelector(selector).outerHTML,
         //     };
         // }, 'div.rune-tree_v2');
+        //TODO: CAN GET STARTING ITEMS OFF OF BACKGROUND POSITION
+
         const data = await page.evaluate((selector) => {
             return {
                 // keystone: document.querySelector('div.perk.keystone.perk-active').innerHTML,
-                runes: Array.from(document.querySelectorAll('div.perk.perk-active')).map(x => x.innerHTML).splice(0, 6)
+                runes: Array.from(document.querySelectorAll('div.perk.perk-active')).map(x => x.innerHTML).splice(0, 6),
+                shards: Array.from(document.querySelectorAll('div.shard.shard-active')).map(x => x.innerHTML).splice(0, 3),
+                startingItems: Array.from(document.querySelectorAll('div.item-dupe')).map(x => x.innerHTML)
 
             };
         }, 'div.perk.keystone.perk-active');
