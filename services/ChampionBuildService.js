@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer');
 const {uriUtilities} = require('../utils/URIUtilities');
+const {Mouse} = require("puppeteer");
 
 async function fetchAndProcessChampionData(message) {
     let uri = "";
@@ -18,12 +19,15 @@ async function fetchAndProcessChampionData(message) {
         console.log('URI: ' + uri);
         const browser = await puppeteer.launch();
         const [page] = await browser.pages();
+        //TODO: This seems to make the item evaluation work
+        await page.setViewport({ width: 400, height: 400 })
 
         // await page.goto('https://u.gg/lol/champions/vayne/build',  { waitUntil: 'networkidle0' });
         //TODO: If there are any issues with reliability, it will most likely be here.
         await page.goto(uri);
-
-        page.lo
+        await page.addStyleTag({ content: "{scroll-behavior: auto !important;}" });
+        //
+        // page.lo
         // const data = await page.evaluate(() => document.querySelector('div.rune-tree_v2').outerHTML);
         // const data = await page.evaluate((selector) => {
         //     return {
@@ -34,16 +38,141 @@ async function fetchAndProcessChampionData(message) {
         //TODO: OR WE LOOK AT HOVER;
         //TODO: ITEM NAMES WILL HAVE TO BE A LIST OF HOVERS
 
-        const data = await page.evaluate((selector) => {
-            return {
-                // keystone: document.querySelector('div.perk.keystone.perk-active').innerHTML,
-                runes: Array.from(document.querySelectorAll('div.perk.perk-active')).map(x => x.innerHTML).splice(0, 6),
-                shards: Array.from(document.querySelectorAll('div.shard.shard-active')).map(x => x.innerHTML).splice(0, 3),
-                startingItems: Array.from(document.querySelectorAll('div.item-dupe')).map(x => x.innerHTML),
-                curious: Array.from(document.querySelectorAll('div.tooltip-portal')).map(x => x.innerHTML)
+        let data;
 
-            };
-        }, 'div.perk.keystone.perk-active');
+
+
+        // let imageItems = await page.$$('div[class="item-img"]');
+        // let imageItems = await page.$$('div[class="content-section content-section_no-padding recommended-build_items media-query media-query_TABLET__DESKTOP_SMALL"] > div[class="content-section_content starting-items"] > div[class="item-row"] > div[class="item-dupe"] > div[class=""item-img]');
+        let startingItemOptions = await page.$$('div[class="content-section content-section_no-padding recommended-build_items media-query media-query_MOBILE_SMALL__MOBILE_LARGE"] > div[class="content-section_content starting-items"] > div > div[class="item-row"] > div[class="item-dupe"]');
+        let coreItemOptions = await page.$$('div[class="content-section content-section_no-padding recommended-build_items media-query media-query_MOBILE_SMALL__MOBILE_LARGE"] > div[class="content-section_content core-items mythic-border-container"] > div > div[class="item-row"] > div[class="item-dupe"]');
+        let fourthItemOptions = await page.$$('div[class="content-section content-section_no-padding recommended-build_items media-query media-query_MOBILE_SMALL__MOBILE_LARGE"] > div[class="content-section_content item-options item-options-1"] > div > div[class="item-row"] > div[class="item-dupe"]');
+        let fifthItemOptions = await page.$$('div[class="content-section content-section_no-padding recommended-build_items media-query media-query_MOBILE_SMALL__MOBILE_LARGE"] > div[class="content-section_content item-options item-options-2"] > div > div[class="item-row"] > div[class="item-dupe"]');
+        let sixthItemOptions = await page.$$('div[class="content-section content-section_no-padding recommended-build_items media-query media-query_MOBILE_SMALL__MOBILE_LARGE"] > div[class="content-section_content item-options item-options-3"] > div > div[class="item-row"] > div[class="item-dupe"]');
+
+        let startingItemsList = await evaluateImages(page, startingItemOptions);
+        let coreItemsList = await evaluateImages(page, coreItemOptions);
+        let FourthItemsList = await evaluateImages(page, fourthItemOptions);
+        let FifthItemsList = await evaluateImages(page, fifthItemOptions);
+        let SixthItemsList = await evaluateImages(page, sixthItemOptions);
+
+        console.log(startingItemsList);
+
+
+        // let imageItems = await page.$$('div[class="item-option"]');
+
+        // imageItems = imageItems.splice(0, (imageItems.length/3));
+
+        //
+        // for await (let image of imageItems) {
+        //     try {
+        //         await image.hover().then(async () => {
+        //             data = await page.evaluate(async (selector) => {
+        //
+        //                 // await page.hover('div.item-img').then(() => {
+        //                 //     console.log('hello');
+        //                 // })
+        //
+        //                 return {
+        //                     // keystone: document.querySelector('div.perk.keystone.perk-active').innerHTML,
+        //                     runes: Array.from(document.querySelectorAll('div.perk.perk-active')).map(x => x.innerHTML).splice(0, 6),
+        //                     shards: Array.from(document.querySelectorAll('div.shard.shard-active')).map(x => x.innerHTML).splice(0, 3),
+        //                     startingItems: Array.from(document.querySelectorAll('div.item-dupe')).map(x => x.innerHTML),
+        //                     // curious: Array.from(document.querySelectorAll('div.tooltip-portal')).map(x => x.innerHTML)
+        //                     curious: document.querySelector('div.tooltip-item').innerHTML
+        //
+        //                 };
+        //             }, 'div.perk.keystone.perk-active');
+        //         });
+        //         console.log(data);
+        //     } catch (error) {
+        //         console.log(error);
+        //     }
+        // }
+
+
+
+
+        // console.log(test);
+
+
+
+        // await imageItems[12].hover().then(async () => {
+        //     data = await page.evaluate(async (selector) => {
+        //
+        //         // await page.hover('div.item-img').then(() => {
+        //         //     console.log('hello');
+        //         // })
+        //
+        //         return {
+        //             // keystone: document.querySelector('div.perk.keystone.perk-active').innerHTML,
+        //             runes: Array.from(document.querySelectorAll('div.perk.perk-active')).map(x => x.innerHTML).splice(0, 6),
+        //             shards: Array.from(document.querySelectorAll('div.shard.shard-active')).map(x => x.innerHTML).splice(0, 3),
+        //             startingItems: Array.from(document.querySelectorAll('div.item-dupe')).map(x => x.innerHTML),
+        //             // curious: Array.from(document.querySelectorAll('div.tooltip-portal')).map(x => x.innerHTML)
+        //             curious: document.querySelector('div.tooltip-item').innerHTML
+        //
+        //         };
+        //     }, 'div.perk.keystone.perk-active');
+        // });
+
+        // for(let naglis of imageItems) {
+        //     await naglis.hover().then(async () => {
+        //         await page.evaluate(async (selector) => {
+        //
+        //             test.push(document.querySelector('div.tooltip-item').innerHTML);
+        //
+        //         });
+        //     })
+        // }
+
+        // console.log(test);
+
+        // await page.hover('div.item-img').then(async () => {
+        //     data = await page.evaluate(async (selector) => {
+        //
+        //         // await page.hover('div.item-img').then(() => {
+        //         //     console.log('hello');
+        //         // })
+        //
+        //         return {
+        //             // keystone: document.querySelector('div.perk.keystone.perk-active').innerHTML,
+        //             runes: Array.from(document.querySelectorAll('div.perk.perk-active')).map(x => x.innerHTML).splice(0, 6),
+        //             shards: Array.from(document.querySelectorAll('div.shard.shard-active')).map(x => x.innerHTML).splice(0, 3),
+        //             startingItems: Array.from(document.querySelectorAll('div.item-dupe')).map(x => x.innerHTML),
+        //             // curious: Array.from(document.querySelectorAll('div.tooltip-portal')).map(x => x.innerHTML)
+        //             curious: document.querySelector('div.tooltip-item').innerHTML
+        //
+        //         };
+        //     }, 'div.perk.keystone.perk-active');
+        // })
+
+        // const data = await page.evaluate(async (selector) => {
+        //
+        //     // await page.hover('div.item-img').then(() => {
+        //     //     console.log('hello');
+        //     // })
+        //
+        //     return {
+        //         // keystone: document.querySelector('div.perk.keystone.perk-active').innerHTML,
+        //         runes: Array.from(document.querySelectorAll('div.perk.perk-active')).map(x => x.innerHTML).splice(0, 6),
+        //         shards: Array.from(document.querySelectorAll('div.shard.shard-active')).map(x => x.innerHTML).splice(0, 3),
+        //         startingItems: Array.from(document.querySelectorAll('div.item-dupe')).map(x => x.innerHTML),
+        //         // curious: Array.from(document.querySelectorAll('div.tooltip-portal')).map(x => x.innerHTML)
+        //         curious: document.querySelector('div.item-img').innerHTML
+        //
+        //     };
+        // }, 'div.perk.keystone.perk-active');
+
+
+        // await page.hover('div.item-img').then(() => {
+        //     console.log(document.querySelector('div.tooltip-item').innerHTML);
+        // });
+
+        // await page.hover('div.item-img')
+        // const imageItems = await page.$$('[class="images-view-list"]');
+
+
 
 
         // const data = await page.evaluateHandle(() => document.querySelector('div.rune-tree_v2'));
@@ -74,40 +203,24 @@ async function fetchAndProcessChampionData(message) {
     }
 }
 
-
-async function extractData(page) {
-    try {
-        const persons = await page.evaluate(() => {
-            let persons = [];
-            const personsElem = document.querySelectorAll("div.rune-tree_v2");
-            const personsElemLen = personsElem.length;
-
-            for (let i = 0; i < personsElemLen; i++) {
-                try {
-                    const personElem = personsElem[i];
-
-                    const photo = personElem.querySelector("img").src;
-
-                    const name = personElem.querySelector("h3").innerText;
-                    const email = personElem.querySelector(".email").innerText;
-                    const phone = personElem.querySelector(".phone").innerText;
-
-                    persons.push({ photo, name, services, price, ratings, reviews });
-                } catch (e) {}
-            }
-
-            return persons;
-        });
-
-
-
-        // do anything with persons
-
-        console.log(persons.length, "persons", persons);
-    } catch(e) {
-        console.error("Unable to extract persons data", e);
+async function evaluateImages(page, imageItemsList) {
+    let loadedItems = [];
+    for await (let image of imageItemsList) {
+        try {
+            await image.hover().then(async () => {
+                loadedItems.push(await page.evaluate(async (selector) => {
+                    return {
+                        curious: document.querySelector('div.tooltip-item').innerHTML
+                    };
+                }, 'div.perk.keystone.perk-active'));
+            });
+            console.log(data);
+        } catch (error) {
+            console.log(error);
+        }
     }
-};
+    return loadedItems;
+}
 
 module.exports.championBuildService = {
     fetchAndProcessChampionData,
