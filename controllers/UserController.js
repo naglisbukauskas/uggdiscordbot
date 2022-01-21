@@ -10,7 +10,9 @@ async function parseMessage(message) {
     //but once I add other user commands this will have to change
     if(isValidCommand(message)) {
         if(champPosArr) {
-            await championBuildService.fetchAndProcessChampionData(champPosArr);
+            // console.log(await championBuildService.fetchAndProcessChampionData(champPosArr))
+
+            return JSON.stringify(await championBuildService.fetchAndProcessChampionData(champPosArr));
         } else {
             return INTERNAL_ERROR;
         }
