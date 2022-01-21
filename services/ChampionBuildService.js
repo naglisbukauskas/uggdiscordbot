@@ -28,15 +28,17 @@ async function fetchAndProcessChampionData(message) {
         //TODO: This seems to make the item evaluation work
         await page.setViewport({ width: 400, height: 400 })
 
-        // await page.goto('https://u.gg/lol/champions/vayne/build',  { waitUntil: 'networkidle0' });
+        // await page.goto(uri,  { waitUntil: 'networkidle0' });
         //TODO: If there are any issues with reliability, it will most likely be here.
-        await page.goto(uri);
-        await page.addStyleTag({ content: "{scroll-behavior: auto !important;}" });
+        await page.goto(uri)
+        // await page.addStyleTag({ content: "{scroll-behavior: auto !important;}" });
 
         data = await page.evaluate(async () => {
             return {
                 runes: (Array.from(document.querySelectorAll('div.perk.perk-active')).map(x => x.innerHTML).splice(0, 6)).map(x => x.slice(x.indexOf('alt=') + 5,x.indexOf(">") - 1)),
-                shards: (Array.from(document.querySelectorAll('div.shard.shard-active')).map(x => x.innerHTML).splice(0, 3)).map(x => x.slice(x.indexOf('alt=') + 5,x.indexOf(">"))),
+                shards: (Array.from(document.querySelectorAll('div.shard.shard-active')).map(x => x.innerHTML).splice(0, 3)).map(x => x.slice(x.indexOf('alt=') + 5,x.indexOf(">") - 1)),
+                primaryTreeName: document.querySelector('div.rune-trees-container-2.media-query.media-query_MOBILE_LARGE__DESKTOP_LARGE > div > div.rune-tree_v2.primary-tree > div.rune-tree_header > div.perk-style-title').innerHTML,
+                secondaryTreeName: document.querySelector('div.rune-trees-container-2.media-query.media-query_MOBILE_LARGE__DESKTOP_LARGE > div.secondary-tree > div > div.rune-tree_v2 > div.rune-tree_header > div.perk-style-title').innerHTML,
             };
         });
 
@@ -45,6 +47,11 @@ async function fetchAndProcessChampionData(message) {
         let fourthItemOptions = await page.$$('div[class="content-section content-section_no-padding recommended-build_items media-query media-query_MOBILE_SMALL__MOBILE_LARGE"] > div[class="content-section_content item-options item-options-1"] > div[class="item-option-list"] > div[class="item-option"] > div[class="item-img"]');
         let fifthItemOptions = await page.$$('div[class="content-section content-section_no-padding recommended-build_items media-query media-query_MOBILE_SMALL__MOBILE_LARGE"] > div[class="content-section_content item-options item-options-2"] > div[class="item-option-list"] > div[class="item-option"] > div[class="item-img"]');
         let sixthItemOptions = await page.$$('div[class="content-section content-section_no-padding recommended-build_items media-query media-query_MOBILE_SMALL__MOBILE_LARGE"] > div[class="content-section_content item-options item-options-3"] > div[class="item-option-list"] > div[class="item-option"] > div[class="item-img"]');
+
+        // let primaryTreeName = await page.$('div[class="rune-trees-container-2 media-query media-query_MOBILE_LARGE__DESKTOP_LARGE"] > div > div[class="rune-tree_v2 primary-tree"] > div[class="rune-tree_header"] > div[class="perk-style-title"]');
+
+        // console.log('Primary Tree Name');
+        // console.log(primaryTreeName);
 
         let startingItemsList = await evaluateImages(page, startingItemOptions);
         let mythicCoreItemsList = await evaluateImages(page, mythicCoreItemOptions);
@@ -92,6 +99,22 @@ async function evaluateImages(page, imageItemsList) {
     return loadedItems;
 }
 
+function normalizeShards(shards) {
+    let normalizedShards = [];
+    for(let shard of shards) {
+        let normalizedShard = "";
+        shard = shard.split(" ");
+        shard[0] = "";
+        shard[shard.length - 1] = "";
+
+        for(let word of shard) {
+            normalizedShard = normalizedShard + " " + word;
+        }
+        normalizedShards.push(normalizedShard.trim());
+    }
+    return normalizedShards;
+}
+
 function normalizeRunes(runes) {
     let normalizedRunes = [];
     for(let rune of runes) {
@@ -106,21 +129,93 @@ function normalizeRunes(runes) {
     return normalizedRunes;
 }
 
+function capitalizeChampionName(champion) {
+
+    let capitalizeFirst = true;
+    let capitalizeNext = false;
+
+    for(let char of champion) {
+        if(capitalizeFirst) {
+            char = char.toUpperCase();
+        }
+        capitalizeFirst = false;
+
+        if(capitalizeNext) {
+            char = char.toUpperCase();
+            capitalizeNext = false;
+        }
+
+        if(char === "'" || char === " ") {
+            capitalizeNext = true;
+        }
+    }
+    return champion;
+}
+
+function extractRuneTreeColor(treeName) {
+    treeName = treeName.toLowerCase();
+    switch(treeName) {
+        case 'precision':
+            return  ':yellow_square:'
+            // return '<:yellow_square:933963482699825223>';
+        case 'domination':
+            return ':red_square:'
+            // return '<:red_square:933969543599108096>';
+        case 'sorcery':
+            return ':purple_square:';
+            // return '<:purple_square:934123011655761930';
+        case 'resolve':
+            return ':green_square:';
+            // return '<:green_square:934122822048026735';
+        case 'inspiration':
+            return ':blue_square:';
+            // return '<:blue_square:934123047680626718';
+    }
+}
+
+function extractShardColor(shard) {
+    shard = shard.toLowerCase();
+    console.log("SHARD - " + shard);
+    switch(shard) {
+        case 'adaptive force':
+            return  ':purple_circle:'
+        case 'attack speed':
+            return ':yellow_circle:'
+        case 'ability haste':
+            return ':yellow_circle:';
+        case 'armor':
+            return ':red_circle:';
+        case 'magic resist':
+            return ':purple_circle:';
+        case 'health':
+            return ':green_circle:';
+    }
+}
+
 function formatDataForResponse(data) {
     console.log(data);
+    let championName = capitalizeChampionName(data['champion']);
     let runes = normalizeRunes(data['runes']);
-    console.log(runes);
+    let shards = normalizeShards(data['shards']);
+
+    let primaryTreeColor = extractRuneTreeColor(data['primaryTreeName']);
+    let secondaryTreeColor = extractRuneTreeColor(data['secondaryTreeName']);
+
+    let firstShardColor = extractShardColor(shards[0]);
+    let secondShardColor = extractShardColor(shards[1]);
+    let thirdShardColor = extractShardColor(shards[2]);
 
     const build = new MessageEmbed();
     build.setColor('#0099ff');
     build.setTitle(data['champion']);
     //TODO: Runes, Precision and Domination
     build.addFields(
-        { name: 'Runes', value: 'Precision & Domination' },
+        { name: 'Runes', value: data['primaryTreeName'] + ' & ' + data['secondaryTreeName']},
         // { name: "Keystone", value: "<:yellow_square:933963482699825223>" + " " + runes[0] + "\n NAGLIS IS DA BEST"},
-        { name: "Keystone", value: "<:yellow_square:933963482699825223>" + " " + runes[0]},
-        { name: "Primary", value: "<:yellow_square:933963482699825223>" + " " + runes[1] + '\n\n' + "<:yellow_square:933963482699825223>" + " " + runes[2] + '\n\n' + "<:yellow_square:933963482699825223>" + " " + runes[3], inline: true},
-        { name: "Secondary", value: "<:red_square:933969543599108096>" + " " + runes[4] + '\n\n' + "<:red_square:933969543599108096>" + " " + runes[5], inline: true},
+        { name: "Keystone", value: primaryTreeColor + " " + runes[0]},
+        { name: "Primary", value: primaryTreeColor + " " + runes[1] + '\n\n' + primaryTreeColor + " " + runes[2] + '\n\n' + primaryTreeColor + " " + runes[3], inline: true},
+        { name: "Secondary", value: secondaryTreeColor + " " + runes[4] + '\n\n' + secondaryTreeColor + " " + runes[5], inline: true},
+        { name: "Shards", value: firstShardColor + " " + shards[0] + "\n\n" + secondShardColor + " " + shards[1] + "\n\n" + thirdShardColor + " "  + shards[2]}
 
         // {name: '\u200b', value: '\u200b'},
         // { name: "\u200b", value: "<:yellow_square:933963482699825223>" + " " + runes[1], inline: true},
