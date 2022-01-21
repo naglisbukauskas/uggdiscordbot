@@ -25,7 +25,13 @@ client.on("messageCreate", async (message) => {
         response = resMessage;
         console.log('RESPONSE: ' + response);
         if(response) {
-            client.channels.cache.get(message['channelId']).send(response);
+            if(typeof(response) === "object") {
+                client.channels.cache.get(message['channelId']).send({ embeds: [response] });
+            } else {
+                client.channels.cache.get(message['channelId']).send(response);
+            }
+
+
         }
     });
 });

@@ -1,17 +1,21 @@
 const puppeteer = require('puppeteer');
 const {uriUtilities} = require('../utils/URIUtilities');
 const {Mouse} = require("puppeteer");
+const {MessageEmbed} = require("discord.js");
 
 async function fetchAndProcessChampionData(message) {
     let uri = "";
     let data;
+    let retBuild;
+    let champion;
+    let position;
 
     if(message.length === 1) {
-        let champion = message[0].toLowerCase();
+        champion = message[0].toLowerCase();
         uri = await uriUtilities.buildUriForChampion(champion);
     } else if (message.length === 2) {
-        let champion = message[0].toLowerCase();
-        let position = message[1].toLowerCase();
+        champion = message[0].toLowerCase();
+        position = message[1].toLowerCase();
         uri = await uriUtilities.buildUriForChampionAndPosition(champion, position);
     }
 
@@ -54,13 +58,20 @@ async function fetchAndProcessChampionData(message) {
         data['fifthItems'] = fifthItemsList;
         data['sixthItems'] = sixthItemsList;
 
+        data['champion'] = champion;
+        data['position'] = position;
+
         await browser.close();
 
     } catch (error) {
         console.error(error);
     }
 
-    return data;
+    if(data) {
+        retBuild = formatDataForResponse(data);
+    }
+
+    return retBuild;
 }
 
 async function evaluateImages(page, imageItemsList) {
@@ -79,6 +90,27 @@ async function evaluateImages(page, imageItemsList) {
         }
     }
     return loadedItems;
+}
+
+function formatDataForResponse(data) {
+    console.log(data);
+    let runes = data['runes'];
+    const build = new MessageEmbed();
+    build.setColor('#0099ff');
+    build.setTitle(data['champion']);
+    //TODO: Runes, Precision and Domination
+    build.addFields(
+        { name: 'Runes', value: 'runes' },
+        { name: "Keystone", value: "<:yellow_square:933963482699825223>" + " " + runes[0]},
+        { name: "1st Primary", value: "<:yellow_square:933963482699825223>" + " " + runes[1], inline: true},
+        { name: "1st Secondary", value: runes[4], inline: true},
+        { name: "2nd Primary", value: "<:yellow_square:933963482699825223>" + " " + runes[2], inline: true},
+        { name: "2nd Secondary", value: runes[5], inline: true},
+        { name: "3rd Primary", value: "<:yellow_square:933963482699825223>" + " " + runes[3]}
+        // { name: runes[1], inline: true },
+    )
+    return build;
+
 }
 
 module.exports.championBuildService = {
