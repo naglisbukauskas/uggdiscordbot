@@ -35,7 +35,7 @@ async function fetchAndProcessChampionData(message) {
 
         data = await page.evaluate(async () => {
             return {
-                runes: (Array.from(document.querySelectorAll('div.perk.perk-active')).map(x => x.innerHTML).splice(0, 6)).map(x => x.slice(x.indexOf('alt=') + 5,x.indexOf(">"))),
+                runes: (Array.from(document.querySelectorAll('div.perk.perk-active')).map(x => x.innerHTML).splice(0, 6)).map(x => x.slice(x.indexOf('alt=') + 5,x.indexOf(">") - 1)),
                 shards: (Array.from(document.querySelectorAll('div.shard.shard-active')).map(x => x.innerHTML).splice(0, 3)).map(x => x.slice(x.indexOf('alt=') + 5,x.indexOf(">"))),
             };
         });
@@ -92,26 +92,51 @@ async function evaluateImages(page, imageItemsList) {
     return loadedItems;
 }
 
+function normalizeRunes(runes) {
+    let normalizedRunes = [];
+    for(let rune of runes) {
+        let normalizedRune = "";
+        rune = rune.split(" ");
+        rune = rune.splice(2, rune.length);
+        for(let word of rune) {
+            normalizedRune = normalizedRune + " " + word;
+        }
+        normalizedRunes.push(normalizedRune);
+    }
+    return normalizedRunes;
+}
+
 function formatDataForResponse(data) {
     console.log(data);
-    let runes = data['runes'];
+    let runes = normalizeRunes(data['runes']);
+    console.log(runes);
+
     const build = new MessageEmbed();
     build.setColor('#0099ff');
     build.setTitle(data['champion']);
     //TODO: Runes, Precision and Domination
     build.addFields(
-        { name: 'Runes', value: 'runes' },
+        { name: 'Runes', value: 'Precision & Domination' },
+        // { name: "Keystone", value: "<:yellow_square:933963482699825223>" + " " + runes[0] + "\n NAGLIS IS DA BEST"},
         { name: "Keystone", value: "<:yellow_square:933963482699825223>" + " " + runes[0]},
-        { name: "1st Primary", value: "<:yellow_square:933963482699825223>" + " " + runes[1], inline: true},
-        { name: "1st Secondary", value: runes[4], inline: true},
-        { name: "2nd Primary", value: "<:yellow_square:933963482699825223>" + " " + runes[2], inline: true},
-        { name: "2nd Secondary", value: runes[5], inline: true},
-        { name: "3rd Primary", value: "<:yellow_square:933963482699825223>" + " " + runes[3]}
+        { name: "Primary", value: "<:yellow_square:933963482699825223>" + " " + runes[1] + '\n\n' + "<:yellow_square:933963482699825223>" + " " + runes[2] + '\n\n' + "<:yellow_square:933963482699825223>" + " " + runes[3], inline: true},
+        { name: "Secondary", value: "<:red_square:933969543599108096>" + " " + runes[4] + '\n\n' + "<:red_square:933969543599108096>" + " " + runes[5], inline: true},
+
+        // {name: '\u200b', value: '\u200b'},
+        // { name: "\u200b", value: "<:yellow_square:933963482699825223>" + " " + runes[1], inline: true},
+        // { name: "1st Secondary", value: runes[4], inline: true},
+        // {name: '\u200b', value: '\u200b'},
+        // { name: "2nd Primary", value: "<:yellow_square:933963482699825223>" + " " + runes[2], inline: true},
+        // { name: "2nd Secondary", value: runes[5], inline: true},
+        // {name: '\u200b', value: '\u200b'},
+        // { name: "3rd Primary", value: "<:yellow_square:933963482699825223>" + " " + runes[3]}
         // { name: runes[1], inline: true },
     )
     return build;
 
 }
+
+
 
 module.exports.championBuildService = {
     fetchAndProcessChampionData,
