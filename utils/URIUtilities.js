@@ -3,11 +3,20 @@ const {BASE_UGG_URI} = require("../utils/GlobalConstants");
 let baseUri = BASE_UGG_URI;
 
 async function buildUriForChampion(champion) {
-    champion = champion.replace(/\s/g, "").replace(/'/g,"");
+    if (champion === "nunu & willump") {
+        champion = "nunu";
+    }
+
+    champion = champion.replace(/\s/g, "").replace(/'/g, "");
+
+
     return baseUri + champion + '/build';
 }
 
 async function buildUriForChampionAndPosition(champion, position) {
+    if (champion === "nunu & willump") {
+        champion = "nunu";
+    }
     champion = champion.replace(/\s/g, "").replace(/'/g,"");
     position = position.toLowerCase();
 

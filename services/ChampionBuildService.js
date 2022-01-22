@@ -43,6 +43,8 @@ async function fetchAndProcessChampionData(message) {
                 image: document.querySelector('img.champion-image').src,
                 position: document.querySelector('span.champion-title').innerHTML,
                 winrate: document.querySelector('div.win-rate > div.value').innerHTML,
+                summoners: (Array.from(document.querySelectorAll('div.content-section_content.summoner-spells > div > img')).map(x => x.alt)).map(x => x.split(" ")[2]),
+
             };
         });
 
@@ -50,6 +52,7 @@ async function fetchAndProcessChampionData(message) {
 
         let startingItemOptions = await page.$$('div[class="content-section content-section_no-padding recommended-build_items media-query media-query_MOBILE_SMALL__MOBILE_LARGE"] > div[class="content-section_content starting-items"] > div > div[class="item-row"] > div[class="item-dupe"] > div[class="item-img"]');
         let mythicCoreItemOptions = await page.$$('div[class="content-section content-section_no-padding recommended-build_items media-query media-query_MOBILE_SMALL__MOBILE_LARGE"] > div[class="content-section_content core-items mythic-border-container"] > div > div > div[class="item-row"] > div[class] > div[class="item-img"]');
+        let mythicCoreItemOptions2 = await page.$$('div[class="content-section content-section_no-padding recommended-build_items media-query media-query_MOBILE_SMALL__MOBILE_LARGE"] > div[class="content-section_content core-items mythic-border-container"] > div > div > div[class="item-row mythic-row"] > div > div[class="item-img"]');
         let fourthItemOptions = await page.$$('div[class="content-section content-section_no-padding recommended-build_items media-query media-query_MOBILE_SMALL__MOBILE_LARGE"] > div[class="content-section_content item-options item-options-1"] > div[class="item-option-list"] > div[class="item-option"] > div[class="item-img"]');
         let fifthItemOptions = await page.$$('div[class="content-section content-section_no-padding recommended-build_items media-query media-query_MOBILE_SMALL__MOBILE_LARGE"] > div[class="content-section_content item-options item-options-2"] > div[class="item-option-list"] > div[class="item-option"] > div[class="item-img"]');
         let sixthItemOptions = await page.$$('div[class="content-section content-section_no-padding recommended-build_items media-query media-query_MOBILE_SMALL__MOBILE_LARGE"] > div[class="content-section_content item-options item-options-3"] > div[class="item-option-list"] > div[class="item-option"] > div[class="item-img"]');
@@ -71,6 +74,7 @@ async function fetchAndProcessChampionData(message) {
 
         let startingItemsList = await evaluateImages(page, startingItemOptions);
         let mythicCoreItemsList = await evaluateImages(page, mythicCoreItemOptions);
+        let mythicCoreItemsList2 = await evaluateImages(page, mythicCoreItemOptions2);
         let fourthItemsList = await evaluateImages(page, fourthItemOptions);
         let fifthItemsList = await evaluateImages(page, fifthItemOptions);
         let sixthItemsList = await evaluateImages(page, sixthItemOptions);
@@ -80,6 +84,7 @@ async function fetchAndProcessChampionData(message) {
 
         data['startingItems'] = startingItemsList;
         data['mythicCoreItems'] = mythicCoreItemsList;
+        data['mythicCoreItems2'] = mythicCoreItemsList2;
         data['fourthItems'] = fourthItemsList;
         data['fifthItems'] = fifthItemsList;
         data['sixthItems'] = sixthItemsList;
@@ -292,7 +297,7 @@ function extractShardColor(shard) {
             return  ':purple_circle:'
         case 'attack speed':
             return ':yellow_circle:'
-        case 'ability haste':
+        case 'scaling cdr':
             return ':yellow_circle:';
         case 'armor':
             return ':red_circle:';
@@ -354,6 +359,38 @@ function visualizeSkillOrder(skillArr) {
     return naglis;
 }
 
+function extractSummonerColor(summoner) {
+    switch (summoner.toLowerCase()) {
+        case 'heal':
+            return ':green_square:';
+        case 'ghost':
+            return ':blue_square:';
+        case 'barrier':
+            return ':brown_square:';
+        case 'exhaust':
+            return ':brown_square:';
+        case 'clarity':
+            return ':blue_square:';
+        case 'flash':
+            return ':yellow_square:';
+        case 'teleport':
+            return ':purple_square:';
+        case 'smite':
+            return ':brown_square:';
+        case 'cleanse':
+            return ':blue_square:';
+        case 'ignite':
+            return ':orange_square:';
+    }
+}
+
+function formatListOfItems(data) {
+    let list = "";
+    for(let item of data) {
+
+    }
+}
+
 function formatDataForResponse(data) {
     console.log(data);
     let championName = capitalizeChampionName(data['champion']);
@@ -361,6 +398,9 @@ function formatDataForResponse(data) {
 
     let runes = normalizeRunes(data['runes']);
     let shards = normalizeShards(data['shards']);
+
+    let summonerColorOne = extractSummonerColor(data['summoners'][0]);
+    let summonerColorTwo = extractSummonerColor(data['summoners'][1]);
 
     let primaryTreeColor = extractRuneTreeColor(data['primaryTreeName']);
     let secondaryTreeColor = extractRuneTreeColor(data['secondaryTreeName']);
@@ -374,14 +414,36 @@ function formatDataForResponse(data) {
     let ESO = visualizeSkillOrder(data['eOrder']);
     let RSO = visualizeSkillOrder(data['rOrder']);
 
+    if(data['mythicCoreItems'].length === 0) {
+        data['mythicCoreItems'] = data['mythicCoreItems2'];
+    }
+
+    // console.log('mythic 1 size: ' + data['mythicCoreItems'].);
+    // console.log('mythic 2 size: ' + data['mythicCoreItems2'].size);
+
+    console.log('FIXED DATA? ' + data['mythicCoreItems'])
+
+    // let startingItemsList = formatListOfItems(data['startingItems']);
+    // let mythicCoreItemsList = formatListOfItems(data['mythicCoreItems']);
+    // let fourthItemsList = formatListOfItems(data['fourthItems']);
+    // let fifthItemsList = formatListOfItems(data['fifthItems']);
+    // let sixthItemsList = formatListOfItems(data['sixthItems']);
+
     const build = new MessageEmbed();
     build.setColor('#0099ff');
     // build.setTitle(data['champion']);
     build.setTitle(championName + " - " + championPosition + " - " + data['winrate']);
     // build.setThumbnail(data['image']);
     //TODO: Runes, Precision and Domination
+
+    let compactSpacing = '\n'
+    let standardSpacing = '\n\n'
+    let spacing = compactSpacing;
+
     build.addFields(
-        { name: 'Runes', value: data['primaryTreeName'] + ' & ' + data['secondaryTreeName']},
+        // { name: 'Runes', value: data['primaryTreeName'] + ' & ' + data['secondaryTreeName']},
+        { name: 'Runes', value: data['primaryTreeName'] + ' & ' + data['secondaryTreeName'], inline: true},
+        { name: 'Summoners', value: summonerColorOne + " " + data['summoners'][0] + spacing + summonerColorTwo + " " + data['summoners'][1], inline: true},
         // { name: "Keystone", value: "<:yellow_square:933963482699825223>" + " " + runes[0] + "\n NAGLIS IS DA BEST"},
         // { name: "Keystone", value: primaryTreeColor + " " + runes[0]},
         // { name: "Primary", value: primaryTreeColor + " " + runes[1] + '\n\n' + primaryTreeColor + " " + runes[2] + '\n\n' + primaryTreeColor + " " + runes[3], inline: true},
@@ -389,19 +451,29 @@ function formatDataForResponse(data) {
         // { name: "Shards", value: firstShardColor + " " + shards[0] + "\n\n" + secondShardColor + " " + shards[1] + "\n\n" + thirdShardColor + " "  + shards[2]},
 
         { name: "Keystone", value: primaryTreeColor + " " + runes[0] + " - " + getRunePosition(runes[0])},
-        { name: "Primary", value: primaryTreeColor + " " + runes[1] + " - " + getRunePosition(runes[1]) + '\n\n' + primaryTreeColor + " " + runes[2] + " - " + getRunePosition(runes[2]) + '\n\n' + primaryTreeColor + " " + runes[3] + " - " + getRunePosition(runes[3]), inline: true},
-        { name: "Secondary", value: secondaryTreeColor + " " + runes[4] + " - " + getRunePosition(runes[4]) + '\n\n' + secondaryTreeColor + " " + runes[5] + " - " + getRunePosition(runes[5]), inline: true},
-        { name: "Shards", value: firstShardColor + " " + shards[0] + "\n\n" + secondShardColor + " " + shards[1] + "\n\n" + thirdShardColor + " "  + shards[2]},
+        { name: "Primary", value: primaryTreeColor + " " + runes[1] + " - " + getRunePosition(runes[1]) + spacing + primaryTreeColor + " " + runes[2] + " - " + getRunePosition(runes[2]) + spacing + primaryTreeColor + " " + runes[3] + " - " + getRunePosition(runes[3]), inline: true},
+        { name: "Secondary", value: secondaryTreeColor + " " + runes[4] + " - " + getRunePosition(runes[4]) + spacing + secondaryTreeColor + " " + runes[5] + " - " + getRunePosition(runes[5]), inline: true},
+        { name: "Shards", value: firstShardColor + " " + shards[0] + spacing + secondShardColor + " " + shards[1] + spacing + thirdShardColor + " "  + shards[2]},
 
         // {name: "Skill-Order", value: ":regional_indicator_q: " + QSO[0] + QSO[1] + QSO[2] + QSO[3] + QSO[4] + QSO[5] + QSO[6] + QSO[7] + QSO[8] + QSO[9] + QSO[10] + QSO[11] + QSO[12] + QSO[13] + QSO[14] + QSO[15] + "\n\n"
         // + ":regional_indicator_w: " + WSO[0] + WSO[1] + WSO[2] + WSO[3] + WSO[4] + WSO[5] + WSO[6] + WSO[7] + WSO[8] + WSO[9] + WSO[10] + WSO[11] + WSO[12] + WSO[13] + WSO[14] + WSO[15]},
         // {name: '\u200b', value: ":regional_indicator_e: " + ESO[0] + ESO[1] + ESO[2] + ESO[3] + ESO[4] + ESO[5] + ESO[6] + ESO[7] + ESO[8] + ESO[9] + ESO[10] + ESO[11] + ESO[12] + ESO[13] + ESO[14] + ESO[15] + "\n\n"
         //         + ":regional_indicator_r: " + RSO[0] + RSO[1] + RSO[2] + RSO[3] + RSO[4] + RSO[5] + RSO[6] + RSO[7] + RSO[8] + RSO[9] + RSO[10] + RSO[11] + RSO[12] + RSO[13] + RSO[14] + RSO[15]},
 
-        {name: "Skill-Order", value: ":regional_indicator_q: " + QSO[0] + " " + QSO[1] + " " + QSO[2] + " " + QSO[3] + " " + QSO[4] + " " + QSO[5] + " " + QSO[6] + " " + QSO[7] + " " + QSO[8] + " " + QSO[9] + " " + QSO[10] + " " + QSO[11] + " " + QSO[12] + " " + QSO[13] + " " + QSO[14] + " " + QSO[15] + " " + QSO[16] + " " + QSO[17] + "\n\n"
-                + ":regional_indicator_w: " + WSO[0] + " " + WSO[1] + " " + WSO[2] + " " + WSO[3] + " " + WSO[4] + " " + WSO[5] + " " + WSO[6] + " " + WSO[7] + " " + WSO[8] + " " + WSO[9] + " " + WSO[10] + " " + WSO[11] + " " + WSO[12] + " " + WSO[13] + " " + WSO[14] + " " + WSO[15] + " " + WSO[16]+ " " + WSO[17]},
-        {name: '\u200b', value: ":regional_indicator_e: " + ESO[0] + " " + ESO[1] + " " + ESO[2] + " " + ESO[3] + " " + ESO[4] + " " + ESO[5] + " " + ESO[6] + " " + ESO[7] + " " + ESO[8] + " " + ESO[9] + " " + ESO[10] + " " + ESO[11] + " " + ESO[12] + " " + ESO[13] + " " + ESO[14] + " " + ESO[15] + " " + ESO[16] + " " + ESO[17] + "\n\n"
-                + ":regional_indicator_r: " + RSO[0] + " " + RSO[1] + " " + RSO[2] + " " + RSO[3] + " " + RSO[4] + " " + RSO[5] + " " + RSO[6] + " " + RSO[7] + " " + RSO[8] + " " + RSO[9] + " " + RSO[10] + " " + RSO[11] + " " + RSO[12] + " " + RSO[13] + " " + RSO[14] + " " + RSO[15] + " " + RSO[16] + " " + RSO[17]},
+        // {name: "Skill-Order", value: ":regional_indicator_q: " + QSO[0] + " " + QSO[1] + " " + QSO[2] + " " + QSO[3] + " " + QSO[4] + " " + QSO[5] + " " + QSO[6] + " " + QSO[7] + " " + QSO[8] + " " + QSO[9] + " " + QSO[10] + " " + QSO[11] + " " + QSO[12] + " " + QSO[13] + " " + QSO[14] + " " + QSO[15] + " " + QSO[16] + " " + QSO[17] + "\n\n"
+        //         + ":regional_indicator_w: " + WSO[0] + " " + WSO[1] + " " + WSO[2] + " " + WSO[3] + " " + WSO[4] + " " + WSO[5] + " " + WSO[6] + " " + WSO[7] + " " + WSO[8] + " " + WSO[9] + " " + WSO[10] + " " + WSO[11] + " " + WSO[12] + " " + WSO[13] + " " + WSO[14] + " " + WSO[15] + " " + WSO[16]+ " " + WSO[17]},
+        // {name: '\u200b', value: ":regional_indicator_e: " + ESO[0] + " " + ESO[1] + " " + ESO[2] + " " + ESO[3] + " " + ESO[4] + " " + ESO[5] + " " + ESO[6] + " " + ESO[7] + " " + ESO[8] + " " + ESO[9] + " " + ESO[10] + " " + ESO[11] + " " + ESO[12] + " " + ESO[13] + " " + ESO[14] + " " + ESO[15] + " " + ESO[16] + " " + ESO[17] + "\n\n"
+        //         + ":regional_indicator_r: " + RSO[0] + " " + RSO[1] + " " + RSO[2] + " " + RSO[3] + " " + RSO[4] + " " + RSO[5] + " " + RSO[6] + " " + RSO[7] + " " + RSO[8] + " " + RSO[9] + " " + RSO[10] + " " + RSO[11] + " " + RSO[12] + " " + RSO[13] + " " + RSO[14] + " " + RSO[15] + " " + RSO[16] + " " + RSO[17]},
+
+        {name: "Skill-Order", value: ":regional_indicator_q: " + QSO[0] + QSO[1] + QSO[2] + QSO[3] + QSO[4] + QSO[5] + QSO[6] + QSO[7] + QSO[8] + QSO[9] + QSO[10] + QSO[11] + QSO[12] + QSO[13] + QSO[14] + QSO[15] + QSO[16] + QSO[17] + "\n\n"
+                + ":regional_indicator_w: " + WSO[0] + WSO[1] + WSO[2] + WSO[3] + WSO[4] + WSO[5] + WSO[6] + WSO[7] + WSO[8] + WSO[9] + WSO[10] + WSO[11] + WSO[12] + WSO[13] + WSO[14] + WSO[15] + WSO[16]+ WSO[17]},
+        {name: '\u200b', value: ":regional_indicator_e: " + ESO[0] + ESO[1] + ESO[2] + ESO[3] + ESO[4] + ESO[5] + ESO[6] + ESO[7] + ESO[8] + ESO[9] + ESO[10] + ESO[11] + ESO[12] + ESO[13] + ESO[14] + ESO[15] + ESO[16] + ESO[17] + "\n\n"
+                + ":regional_indicator_r: " + RSO[0] + RSO[1] + RSO[2] + RSO[3] + RSO[4] + RSO[5] + RSO[6] + RSO[7] + RSO[8] + RSO[9] + RSO[10] + RSO[11] + RSO[12] + RSO[13] + RSO[14] + RSO[15] + RSO[16] + RSO[17]},
+        {name: "Starting Items", value: data['startingItems'].toString().split(',').join(', ')},
+        {name: "Core Items", value: data['mythicCoreItems'].toString().split(',').join(', ')},
+        {name: "Fourth Item", value: data['fourthItems'].toString().split(',').join(', ')},
+        {name: "Fifth Item", value: data['fifthItems'].toString().split(',').join(', ')},
+        {name: "Sixth Item", value: data['sixthItems'].toString().split(',').join(', ')},
 
 
         // + "E: " + ESO[0] + ESO[1] + ESO[2] + ESO[3] + ESO[4] + ESO[5] + ESO[6] + ESO[7] + ESO[8] + ESO[9] + ESO[10] + ESO[11] + ESO[12] + ESO[13] + ESO[14] + ESO[15] + "\n\n"
