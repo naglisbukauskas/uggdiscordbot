@@ -48,7 +48,24 @@ async function fetchAndProcessChampionData(message) {
             };
         });
 
-        console.log(data);
+        let splitUrl = page.url().split("/")
+        console.log(splitUrl[splitUrl.length - 1]);
+        if(!splitUrl[splitUrl.length - 1].includes(position)) {
+            console.log('DEEEEEEEEEEEEEEEEEFFFFFFFFFAAAAAAAAAAAAAAUUUUUUUUUUUULLLLLLLLLLLLLLTTTTTTTTTTTTTTTTTTTTT');
+        }
+
+        // [
+        //     'https:',
+        //     '',
+        //     'u.gg',
+        //     'lol',
+        //     'champions',
+        //     'vayne',
+        //     'build?role=middle'
+        // ]
+
+
+        // console.log(data);
 
         let startingItemOptions = await page.$$('div[class="content-section content-section_no-padding recommended-build_items media-query media-query_MOBILE_SMALL__MOBILE_LARGE"] > div[class="content-section_content starting-items"] > div > div[class="item-row"] > div[class="item-dupe"] > div[class="item-img"]');
         let mythicCoreItemOptions = await page.$$('div[class="content-section content-section_no-padding recommended-build_items media-query media-query_MOBILE_SMALL__MOBILE_LARGE"] > div[class="content-section_content core-items mythic-border-container"] > div > div > div[class="item-row"] > div[class] > div[class="item-img"]');
@@ -80,11 +97,14 @@ async function fetchAndProcessChampionData(message) {
         let sixthItemsList = await evaluateImages(page, sixthItemOptions);
 
 
+        if(mythicCoreItemsList.length === 0) {
+            data['mythicCoreItems'] = mythicCoreItemsList2
+        } else {
+            data['mythicCoreItems'] = mythicCoreItemsList;
+        }
 
 
         data['startingItems'] = startingItemsList;
-        data['mythicCoreItems'] = mythicCoreItemsList;
-        data['mythicCoreItems2'] = mythicCoreItemsList2;
         data['fourthItems'] = fourthItemsList;
         data['fifthItems'] = fifthItemsList;
         data['sixthItems'] = sixthItemsList;
@@ -469,11 +489,11 @@ function formatDataForResponse(data) {
                 + ":regional_indicator_w: " + WSO[0] + WSO[1] + WSO[2] + WSO[3] + WSO[4] + WSO[5] + WSO[6] + WSO[7] + WSO[8] + WSO[9] + WSO[10] + WSO[11] + WSO[12] + WSO[13] + WSO[14] + WSO[15] + WSO[16]+ WSO[17]},
         {name: '\u200b', value: ":regional_indicator_e: " + ESO[0] + ESO[1] + ESO[2] + ESO[3] + ESO[4] + ESO[5] + ESO[6] + ESO[7] + ESO[8] + ESO[9] + ESO[10] + ESO[11] + ESO[12] + ESO[13] + ESO[14] + ESO[15] + ESO[16] + ESO[17] + "\n\n"
                 + ":regional_indicator_r: " + RSO[0] + RSO[1] + RSO[2] + RSO[3] + RSO[4] + RSO[5] + RSO[6] + RSO[7] + RSO[8] + RSO[9] + RSO[10] + RSO[11] + RSO[12] + RSO[13] + RSO[14] + RSO[15] + RSO[16] + RSO[17]},
-        // {name: "Starting Items", value: data['startingItems'].toString().split(',').join(', ')},
-        // {name: "Core Items", value: data['mythicCoreItems'].toString().split(',').join(', ')},
-        // {name: "Fourth Item", value: data['fourthItems'].toString().split(',').join(', ')},
-        // {name: "Fifth Item", value: data['fifthItems'].toString().split(',').join(', ')},
-        // {name: "Sixth Item", value: data['sixthItems'].toString().split(',').join(', ')},
+        {name: "Starting Items", value: data['startingItems'].toString().split(',').join(', ')},
+        {name: "Core Items", value: data['mythicCoreItems'].toString().split(',').join(', ')},
+        {name: "Fourth Item", value: data['fourthItems'].toString().split(',').join(', ')},
+        {name: "Fifth Item", value: data['fifthItems'].toString().split(',').join(', ')},
+        {name: "Sixth Item", value: data['sixthItems'].toString().split(',').join(', ')},
 
 
         // + "E: " + ESO[0] + ESO[1] + ESO[2] + ESO[3] + ESO[4] + ESO[5] + ESO[6] + ESO[7] + ESO[8] + ESO[9] + ESO[10] + ESO[11] + ESO[12] + ESO[13] + ESO[14] + ESO[15] + "\n\n"

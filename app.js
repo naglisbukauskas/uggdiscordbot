@@ -4,26 +4,10 @@ const {Client, Intents, Channel} = require('discord.js');
 const axios = require('axios');
 const cheerio = require('cheerio');
 const puppeteer = require('puppeteer');
-const {messageRouter} = require("./routers/MessageRouter");
 
-const { MongoClient } = require('mongodb');
-const uri = "mongodb+srv://discordbot:" + process.env.DATABASE_PASSWORD + "@botcluster.1j2yr.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
-const databaseClient = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
-async function run() {
-    try {
-        await databaseClient.connect();
-        const database = databaseClient.db('sample_mflix');
-        const movies = database.collection('movies');
-        // Query for a movie that has the title 'Back to the Future'
-        const query = { title: 'Back to the Future' };
-        const movie = await movies.findOne(query);
-        console.log(movie);
-    } finally {
-        // Ensures that the client will close when you finish/error
-        await databaseClient.close();
-    }
-}
-run().catch(console.dir);
+const cron = require('node-cron');
+const {messageRouter} = require("./routers/MessageRouter");
+const {championDataService} = require("./services/ChampionDataService");
 
 const client = new Client({
     intents: [Intents.FLAGS.GUILDS,
@@ -54,6 +38,29 @@ client.on("messageCreate", async (message) => {
         }
     });
 });
+
+// function pullChampionData() {
+//   let startDate = new Date();
+//   console.log('Pulling Champion Data for Date: ' + startDate);
+//   championDataService.pullAndSaveChampionData().then(() => {
+//       let endDate = new Date();
+//       console.log('Completed pulling champion data in ' + (endDate - startDate));
+//   });
+// }
+//
+// //6 hours
+// // setInterval(pullChampionData, 21600000);
+// setInterval(pullChampionData, 10000);
+
+// let startDate = new Date();
+//   console.log('Pulling Champion Data for Date: ' + startDate);
+//   championDataService.pullAndSaveChampionData().then(() => {
+//       let endDate = new Date();
+//       console.log('Completed pulling champion data in ' + (endDate - startDate));
+//   });
+
+// championDataService.funnyGoofyTest();
+championDataService.fetchPairsNotPopulated().then(r => console.log('nagils'));
 
 module.exports.client = {
     client,

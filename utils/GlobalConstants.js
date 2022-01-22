@@ -46,6 +46,7 @@ let VALID_CHAMPIONS_LIST = [
 ];
 
 let VALID_POSITIONS_LIST = ['top','middle','mid','jg','jungle','adc','bot','bottom','sup','supp','support'];
+let NORMALIZED_POSITIONS_LIST = ['top', 'jungle', 'middle', 'adc', 'support'];
 
 module.exports = {
     INVALID_COMMAND,
@@ -53,5 +54,6 @@ module.exports = {
     VALID_COMMAND,
     BASE_UGG_URI,
     VALID_CHAMPIONS_LIST,
-    VALID_POSITIONS_LIST
+    VALID_POSITIONS_LIST,
+    NORMALIZED_POSITIONS_LIST
 }
