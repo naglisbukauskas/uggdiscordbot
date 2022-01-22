@@ -42,7 +42,7 @@ let VALID_CHAMPIONS_LIST = [
     'yorick',       'yuumi',        'zac',          'zed',
     'ziggs',        'zilean',       'zoe',          'zyra',
     'vex',          'akshan',       'gwen',          'viego',
-    'rell'
+    'rell',         'zeri'
 ];
 
 let VALID_POSITIONS_LIST = ['top','middle','mid','jg','jungle','adc','bot','bottom','sup','supp','support'];

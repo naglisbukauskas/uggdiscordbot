@@ -40,6 +40,9 @@ async function fetchAndProcessChampionData(message) {
                 primaryTreeName: document.querySelector('div.rune-trees-container-2.media-query.media-query_MOBILE_LARGE__DESKTOP_LARGE > div > div.rune-tree_v2.primary-tree > div.rune-tree_header > div.perk-style-title').innerHTML,
                 secondaryTreeName: document.querySelector('div.rune-trees-container-2.media-query.media-query_MOBILE_LARGE__DESKTOP_LARGE > div.secondary-tree > div > div.rune-tree_v2 > div.rune-tree_header > div.perk-style-title').innerHTML,
                 skillOrder: Array.from(document.querySelectorAll('div.skill-path-container > div.skill-order-row > div.skill-order')).map(x => x.innerHTML),
+                image: document.querySelector('img.champion-image').src,
+                position: document.querySelector('span.champion-title').innerHTML,
+                winrate: document.querySelector('div.win-rate > div.value').innerHTML,
             };
         });
 
@@ -72,14 +75,19 @@ async function fetchAndProcessChampionData(message) {
         let fifthItemsList = await evaluateImages(page, fifthItemOptions);
         let sixthItemsList = await evaluateImages(page, sixthItemOptions);
 
+
+
+
         data['startingItems'] = startingItemsList;
         data['mythicCoreItems'] = mythicCoreItemsList;
         data['fourthItems'] = fourthItemsList;
         data['fifthItems'] = fifthItemsList;
         data['sixthItems'] = sixthItemsList;
 
+        let positionInfo = data['position'].split(' ');
+
         data['champion'] = champion;
-        data['position'] = position;
+        data['position'] = positionInfo[2].slice(0, -1);
 
         await browser.close();
 
@@ -142,27 +150,82 @@ function normalizeRunes(runes) {
     return normalizedRunes;
 }
 
-function capitalizeChampionName(champion) {
-
-    let capitalizeFirst = true;
-    let capitalizeNext = false;
-
-    for(let char of champion) {
-        if(capitalizeFirst) {
-            char = char.toUpperCase();
-        }
-        capitalizeFirst = false;
-
-        if(capitalizeNext) {
-            char = char.toUpperCase();
-            capitalizeNext = false;
-        }
-
-        if(char === "'" || char === " ") {
-            capitalizeNext = true;
-        }
+function getRunePosition(rune) {
+    rune = rune.toLowerCase().trim();
+    console.log(rune);
+    if(rune === 'press the attack'
+        || rune === 'overheal'
+        || rune === 'legend: alacrity'
+        || rune === 'coup de grace'
+        || rune === 'electrocute'
+        || rune === 'cheap shot'
+        || rune === 'zombie ward'
+        || rune === 'ravenous hunter'
+        || rune === 'summon aery'
+        || rune === 'nullifying orb'
+        || rune === 'transcendence'
+        || rune === 'scorch'
+        || rune === 'grasp of the undying'
+        || rune === 'demolish'
+        || rune === 'conditioning'
+        || rune === 'overgrowth'
+        || rune === 'glacial augment'
+        || rune === 'hextech flashtraption'
+        || rune === "future's market"
+        || rune === 'cosmic insight') {
+        return 1;
+    } else if(rune === 'lethal tempo'
+        || rune === 'triumph'
+        || rune === 'legend: tenacity'
+        || rune === 'cut down'
+        || rune === 'predator'
+        || rune === 'taste of blood'
+        || rune === 'ghost poro'
+        || rune === 'ingenious hunter'
+        || rune === 'arcane comet'
+        || rune === 'manaflow band'
+        || rune === 'celerity'
+        || rune === 'waterwalking'
+        || rune === 'aftershock'
+        || rune === 'font of life'
+        || rune === 'second wind'
+        || rune === 'revitalize'
+        || rune === 'unsealed spellbook'
+        || rune === 'magical footwear'
+        || rune === "minion dematerializer"
+        || rune === 'approach velocity') {
+        return 2;
+    } else if(rune === 'fleet footwork'
+        || rune === 'presence of mind'
+        || rune === 'legend: bloodline'
+        || rune === 'last stand'
+        || rune === 'dark harvest'
+        || rune === 'sudden impact'
+        || rune === 'eyeball collection'
+        || rune === 'relentless hunter'
+        || rune === 'phase rush'
+        || rune === 'nimbus cloak'
+        || rune === 'absolute focus'
+        || rune === 'gathering storm'
+        || rune === 'guardian'
+        || rune === 'shield bash'
+        || rune === 'bone plating'
+        || rune === 'unflinching'
+        || rune === 'first strike'
+        || rune === 'perfect timing'
+        || rune === "biscuit delivery"
+        || rune === 'time warp tonic') {
+        return 3;
+    } else if(rune === 'conqueror'
+        || rune === 'hail of blades'
+        || rune === 'ultimate hunter') {
+        return 4;
     }
-    return champion;
+}
+
+function capitalizeChampionName(champion) {
+    const lower = champion.toLowerCase();
+    return champion.charAt(0).toUpperCase() + lower.slice(1);
 }
 
 function extractSkillOrder(skillList) {
@@ -294,6 +357,8 @@ function visualizeSkillOrder(skillArr) {
 function formatDataForResponse(data) {
     console.log(data);
     let championName = capitalizeChampionName(data['champion']);
+    let championPosition = data['position'];
+
     let runes = normalizeRunes(data['runes']);
     let shards = normalizeShards(data['shards']);
 
@@ -311,14 +376,21 @@ function formatDataForResponse(data) {
 
     const build = new MessageEmbed();
     build.setColor('#0099ff');
-    build.setTitle(data['champion']);
+    // build.setTitle(data['champion']);
+    build.setTitle(championName + " - " + championPosition + " - " + data['winrate']);
+    // build.setThumbnail(data['image']);
     //TODO: Runes, Precision and Domination
     build.addFields(
         { name: 'Runes', value: data['primaryTreeName'] + ' & ' + data['secondaryTreeName']},
         // { name: "Keystone", value: "<:yellow_square:933963482699825223>" + " " + runes[0] + "\n NAGLIS IS DA BEST"},
-        { name: "Keystone", value: primaryTreeColor + " " + runes[0]},
-        { name: "Primary", value: primaryTreeColor + " " + runes[1] + '\n\n' + primaryTreeColor + " " + runes[2] + '\n\n' + primaryTreeColor + " " + runes[3], inline: true},
-        { name: "Secondary", value: secondaryTreeColor + " " + runes[4] + '\n\n' + secondaryTreeColor + " " + runes[5], inline: true},
+        // { name: "Keystone", value: primaryTreeColor + " " + runes[0]},
+        // { name: "Primary", value: primaryTreeColor + " " + runes[1] + '\n\n' + primaryTreeColor + " " + runes[2] + '\n\n' + primaryTreeColor + " " + runes[3], inline: true},
+        // { name: "Secondary", value: secondaryTreeColor + " " + runes[4] + '\n\n' + secondaryTreeColor + " " + runes[5], inline: true},
+        // { name: "Shards", value: firstShardColor + " " + shards[0] + "\n\n" + secondShardColor + " " + shards[1] + "\n\n" + thirdShardColor + " "  + shards[2]},
+
+        { name: "Keystone", value: primaryTreeColor + " " + runes[0] + " - " + getRunePosition(runes[0])},
+        { name: "Primary", value: primaryTreeColor + " " + runes[1] + " - " + getRunePosition(runes[1]) + '\n\n' + primaryTreeColor + " " + runes[2] + " - " + getRunePosition(runes[2]) + '\n\n' + primaryTreeColor + " " + runes[3] + " - " + getRunePosition(runes[3]), inline: true},
+        { name: "Secondary", value: secondaryTreeColor + " " + runes[4] + " - " + getRunePosition(runes[4]) + '\n\n' + secondaryTreeColor + " " + runes[5] + " - " + getRunePosition(runes[5]), inline: true},
         { name: "Shards", value: firstShardColor + " " + shards[0] + "\n\n" + secondShardColor + " " + shards[1] + "\n\n" + thirdShardColor + " "  + shards[2]},
 
         // {name: "Skill-Order", value: ":regional_indicator_q: " + QSO[0] + QSO[1] + QSO[2] + QSO[3] + QSO[4] + QSO[5] + QSO[6] + QSO[7] + QSO[8] + QSO[9] + QSO[10] + QSO[11] + QSO[12] + QSO[13] + QSO[14] + QSO[15] + "\n\n"
