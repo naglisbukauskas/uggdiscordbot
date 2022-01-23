@@ -2,123 +2,47 @@ const puppeteer = require('puppeteer');
 const {uriUtilities} = require('../utils/URIUtilities');
 const {Mouse} = require("puppeteer");
 const {MessageEmbed} = require("discord.js");
+const {MongoClient} = require("mongodb");
+const {utilities} = require("../utils/Utilities");
 
 async function fetchAndProcessChampionData(message) {
-    let uri = "";
     let data;
     let retBuild;
     let champion;
     let position;
 
+    const uri = "mongodb+srv://discordbot:" + process.env.DATABASE_PASSWORD + "@botcluster.1j2yr.mongodb.net/champion_data?retryWrites=true&w=majority";
+    // const databaseClient = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    const databaseClient = new MongoClient(uri);
+    await databaseClient.connect();
+    const database = databaseClient.db('champion_data');
+    const builds = database.collection('build_data');
+
     if(message.length === 1) {
-        champion = message[0].toLowerCase();
-        uri = await uriUtilities.buildUriForChampion(champion);
+        data = await builds.findOne({
+            champion: message[0].toLowerCase(),
+            defaultRole: true
+        })
     } else if (message.length === 2) {
-        champion = message[0].toLowerCase();
-        position = message[1].toLowerCase();
-        uri = await uriUtilities.buildUriForChampionAndPosition(champion, position);
+        position = message[1];
+        if(position === 'top') {
+           message[1] = 'top'
+        } else if ((position === 'middle') || (position === 'mid')) {
+            message[1] = 'middle'
+        } else if ((position === 'jg') || (position === 'jungle')) {
+            message[1] = 'jungle';
+        } else if ((position === 'adc') || (position === 'bot') || (position === 'bottom')) {
+            message[1] = 'adc';
+        } else if ((position === 'sup') || (position === 'supp') || (position === 'support')) {
+            message[1] = 'support';
+        }
+        data = await builds.findOne({
+            champion: message[0].toLowerCase(),
+            position: message[1].toLowerCase()
+        })
     }
 
-
-    try {
-        console.log('URI: ' + uri);
-        const browser = await puppeteer.launch();
-        const [page] = await browser.pages();
-
-        //TODO: This seems to make the item evaluation work
-        await page.setViewport({ width: 400, height: 400 })
-
-        // await page.goto(uri,  { waitUntil: 'networkidle0' });
-        //TODO: If there are any issues with reliability, it will most likely be here.
-        await page.goto(uri)
-        // await page.addStyleTag({ content: "{scroll-behavior: auto !important;}" });
-
-        data = await page.evaluate(async () => {
-            return {
-                runes: (Array.from(document.querySelectorAll('div.perk.perk-active')).map(x => x.innerHTML).splice(0, 6)).map(x => x.slice(x.indexOf('alt=') + 5,x.indexOf(">") - 1)),
-                shards: (Array.from(document.querySelectorAll('div.shard.shard-active')).map(x => x.innerHTML).splice(0, 3)).map(x => x.slice(x.indexOf('alt=') + 5,x.indexOf(">") - 1)),
-                primaryTreeName: document.querySelector('div.rune-trees-container-2.media-query.media-query_MOBILE_LARGE__DESKTOP_LARGE > div > div.rune-tree_v2.primary-tree > div.rune-tree_header > div.perk-style-title').innerHTML,
-                secondaryTreeName: document.querySelector('div.rune-trees-container-2.media-query.media-query_MOBILE_LARGE__DESKTOP_LARGE > div.secondary-tree > div > div.rune-tree_v2 > div.rune-tree_header > div.perk-style-title').innerHTML,
-                skillOrder: Array.from(document.querySelectorAll('div.skill-path-container > div.skill-order-row > div.skill-order')).map(x => x.innerHTML),
-                image: document.querySelector('img.champion-image').src,
-                position: document.querySelector('span.champion-title').innerHTML,
-                winrate: document.querySelector('div.win-rate > div.value').innerHTML,
-                summoners: (Array.from(document.querySelectorAll('div.content-section_content.summoner-spells > div > img')).map(x => x.alt)).map(x => x.split(" ")[2]),
-
-            };
-        });
-
-        let splitUrl = page.url().split("/")
-        console.log(splitUrl[splitUrl.length - 1]);
-        if(!splitUrl[splitUrl.length - 1].includes(position)) {
-            console.log('DEEEEEEEEEEEEEEEEEFFFFFFFFFAAAAAAAAAAAAAAUUUUUUUUUUUULLLLLLLLLLLLLLTTTTTTTTTTTTTTTTTTTTT');
-        }
-
-        // [
-        //     'https:',
-        //     '',
-        //     'u.gg',
-        //     'lol',
-        //     'champions',
-        //     'vayne',
-        //     'build?role=middle'
-        // ]
-
-
-        // console.log(data);
-
-        let startingItemOptions = await page.$$('div[class="content-section content-section_no-padding recommended-build_items media-query media-query_MOBILE_SMALL__MOBILE_LARGE"] > div[class="content-section_content starting-items"] > div > div[class="item-row"] > div[class="item-dupe"] > div[class="item-img"]');
-        let mythicCoreItemOptions = await page.$$('div[class="content-section content-section_no-padding recommended-build_items media-query media-query_MOBILE_SMALL__MOBILE_LARGE"] > div[class="content-section_content core-items mythic-border-container"] > div > div > div[class="item-row"] > div[class] > div[class="item-img"]');
-        let mythicCoreItemOptions2 = await page.$$('div[class="content-section content-section_no-padding recommended-build_items media-query media-query_MOBILE_SMALL__MOBILE_LARGE"] > div[class="content-section_content core-items mythic-border-container"] > div > div > div[class="item-row mythic-row"] > div > div[class="item-img"]');
-        let fourthItemOptions = await page.$$('div[class="content-section content-section_no-padding recommended-build_items media-query media-query_MOBILE_SMALL__MOBILE_LARGE"] > div[class="content-section_content item-options item-options-1"] > div[class="item-option-list"] > div[class="item-option"] > div[class="item-img"]');
-        let fifthItemOptions = await page.$$('div[class="content-section content-section_no-padding recommended-build_items media-query media-query_MOBILE_SMALL__MOBILE_LARGE"] > div[class="content-section_content item-options item-options-2"] > div[class="item-option-list"] > div[class="item-option"] > div[class="item-img"]');
-        let sixthItemOptions = await page.$$('div[class="content-section content-section_no-padding recommended-build_items media-query media-query_MOBILE_SMALL__MOBILE_LARGE"] > div[class="content-section_content item-options item-options-3"] > div[class="item-option-list"] > div[class="item-option"] > div[class="item-img"]');
-
-        // let primaryTreeName = await page.$('div[class="rune-trees-container-2 media-query media-query_MOBILE_LARGE__DESKTOP_LARGE"] > div > div[class="rune-tree_v2 primary-tree"] > div[class="rune-tree_header"] > div[class="perk-style-title"]');
-
-        // console.log('Primary Tree Name');
-        // console.log(primaryTreeName);
-
-        let qLevelOrder = extractSkillOrder(data["skillOrder"][0]);
-        let wLevelOrder = extractSkillOrder(data["skillOrder"][1]);
-        let eLevelOrder = extractSkillOrder(data["skillOrder"][2]);
-        let rLevelOrder = extractSkillOrder(data["skillOrder"][3]);
-
-        data['qOrder'] = qLevelOrder;
-        data['wOrder'] = wLevelOrder;
-        data['eOrder'] = eLevelOrder;
-        data['rOrder'] = rLevelOrder;
-
-        let startingItemsList = await evaluateImages(page, startingItemOptions);
-        let mythicCoreItemsList = await evaluateImages(page, mythicCoreItemOptions);
-        let mythicCoreItemsList2 = await evaluateImages(page, mythicCoreItemOptions2);
-        let fourthItemsList = await evaluateImages(page, fourthItemOptions);
-        let fifthItemsList = await evaluateImages(page, fifthItemOptions);
-        let sixthItemsList = await evaluateImages(page, sixthItemOptions);
-
-
-        if(mythicCoreItemsList.length === 0) {
-            data['mythicCoreItems'] = mythicCoreItemsList2
-        } else {
-            data['mythicCoreItems'] = mythicCoreItemsList;
-        }
-
-
-        data['startingItems'] = startingItemsList;
-        data['fourthItems'] = fourthItemsList;
-        data['fifthItems'] = fifthItemsList;
-        data['sixthItems'] = sixthItemsList;
-
-        let positionInfo = data['position'].split(' ');
-
-        data['champion'] = champion;
-        data['position'] = positionInfo[2].slice(0, -1);
-
-        await browser.close();
-
-    } catch (error) {
-        console.error(error);
-    }
+    console.log(data);
 
     if(data) {
         retBuild = formatDataForResponse(data);
@@ -413,106 +337,145 @@ function formatListOfItems(data) {
 
 function formatDataForResponse(data) {
     console.log(data);
+    let errorString = ':warning: No Data :warning:'
+
     let championName = capitalizeChampionName(data['champion']);
     let championPosition = data['position'];
 
-    let runes = normalizeRunes(data['runes']);
-    let shards = normalizeShards(data['shards']);
-
-    let summonerColorOne = extractSummonerColor(data['summoners'][0]);
-    let summonerColorTwo = extractSummonerColor(data['summoners'][1]);
-
-    let primaryTreeColor = extractRuneTreeColor(data['primaryTreeName']);
-    let secondaryTreeColor = extractRuneTreeColor(data['secondaryTreeName']);
-
-    let firstShardColor = extractShardColor(shards[0]);
-    let secondShardColor = extractShardColor(shards[1]);
-    let thirdShardColor = extractShardColor(shards[2]);
-
-    let QSO = visualizeSkillOrder(data['qOrder']);
-    let WSO = visualizeSkillOrder(data['wOrder']);
-    let ESO = visualizeSkillOrder(data['eOrder']);
-    let RSO = visualizeSkillOrder(data['rOrder']);
-
-    // if(data['mythicCoreItems'].length === 0) {
-    //     data['mythicCoreItems'] = data['mythicCoreItems2'];
-    // }
-
-    // console.log('mythic 1 size: ' + data['mythicCoreItems'].);
-    // console.log('mythic 2 size: ' + data['mythicCoreItems2'].size);
-
-    console.log('FIXED DATA? ' + data['mythicCoreItems'])
-
-    // let startingItemsList = formatListOfItems(data['startingItems']);
-    // let mythicCoreItemsList = formatListOfItems(data['mythicCoreItems']);
-    // let fourthItemsList = formatListOfItems(data['fourthItems']);
-    // let fifthItemsList = formatListOfItems(data['fifthItems']);
-    // let sixthItemsList = formatListOfItems(data['sixthItems']);
-
-    const build = new MessageEmbed();
-    build.setColor('#0099ff');
-    // build.setTitle(data['champion']);
-    build.setTitle(championName + " - " + championPosition + " - " + data['winrate']);
-    // build.setThumbnail(data['image']);
-    //TODO: Runes, Precision and Domination
-
-    let compactSpacing = '\n'
-    let standardSpacing = '\n\n'
-    let spacing = compactSpacing;
-
-    build.addFields(
-        // { name: 'Runes', value: data['primaryTreeName'] + ' & ' + data['secondaryTreeName']},
-        { name: 'Runes', value: data['primaryTreeName'] + ' & ' + data['secondaryTreeName'], inline: true},
-        { name: 'Summoners', value: summonerColorOne + " " + data['summoners'][0] + spacing + summonerColorTwo + " " + data['summoners'][1], inline: true},
-        // { name: "Keystone", value: "<:yellow_square:933963482699825223>" + " " + runes[0] + "\n NAGLIS IS DA BEST"},
-        // { name: "Keystone", value: primaryTreeColor + " " + runes[0]},
-        // { name: "Primary", value: primaryTreeColor + " " + runes[1] + '\n\n' + primaryTreeColor + " " + runes[2] + '\n\n' + primaryTreeColor + " " + runes[3], inline: true},
-        // { name: "Secondary", value: secondaryTreeColor + " " + runes[4] + '\n\n' + secondaryTreeColor + " " + runes[5], inline: true},
-        // { name: "Shards", value: firstShardColor + " " + shards[0] + "\n\n" + secondShardColor + " " + shards[1] + "\n\n" + thirdShardColor + " "  + shards[2]},
-
-        { name: "Keystone", value: primaryTreeColor + " " + runes[0] + " - " + getRunePosition(runes[0])},
-        { name: "Primary", value: primaryTreeColor + " " + runes[1] + " - " + getRunePosition(runes[1]) + spacing + primaryTreeColor + " " + runes[2] + " - " + getRunePosition(runes[2]) + spacing + primaryTreeColor + " " + runes[3] + " - " + getRunePosition(runes[3]), inline: true},
-        { name: "Secondary", value: secondaryTreeColor + " " + runes[4] + " - " + getRunePosition(runes[4]) + spacing + secondaryTreeColor + " " + runes[5] + " - " + getRunePosition(runes[5]), inline: true},
-        { name: "Shards", value: firstShardColor + " " + shards[0] + spacing + secondShardColor + " " + shards[1] + spacing + thirdShardColor + " "  + shards[2]},
-
-        // {name: "Skill-Order", value: ":regional_indicator_q: " + QSO[0] + QSO[1] + QSO[2] + QSO[3] + QSO[4] + QSO[5] + QSO[6] + QSO[7] + QSO[8] + QSO[9] + QSO[10] + QSO[11] + QSO[12] + QSO[13] + QSO[14] + QSO[15] + "\n\n"
-        // + ":regional_indicator_w: " + WSO[0] + WSO[1] + WSO[2] + WSO[3] + WSO[4] + WSO[5] + WSO[6] + WSO[7] + WSO[8] + WSO[9] + WSO[10] + WSO[11] + WSO[12] + WSO[13] + WSO[14] + WSO[15]},
-        // {name: '\u200b', value: ":regional_indicator_e: " + ESO[0] + ESO[1] + ESO[2] + ESO[3] + ESO[4] + ESO[5] + ESO[6] + ESO[7] + ESO[8] + ESO[9] + ESO[10] + ESO[11] + ESO[12] + ESO[13] + ESO[14] + ESO[15] + "\n\n"
-        //         + ":regional_indicator_r: " + RSO[0] + RSO[1] + RSO[2] + RSO[3] + RSO[4] + RSO[5] + RSO[6] + RSO[7] + RSO[8] + RSO[9] + RSO[10] + RSO[11] + RSO[12] + RSO[13] + RSO[14] + RSO[15]},
-
-        // {name: "Skill-Order", value: ":regional_indicator_q: " + QSO[0] + " " + QSO[1] + " " + QSO[2] + " " + QSO[3] + " " + QSO[4] + " " + QSO[5] + " " + QSO[6] + " " + QSO[7] + " " + QSO[8] + " " + QSO[9] + " " + QSO[10] + " " + QSO[11] + " " + QSO[12] + " " + QSO[13] + " " + QSO[14] + " " + QSO[15] + " " + QSO[16] + " " + QSO[17] + "\n\n"
-        //         + ":regional_indicator_w: " + WSO[0] + " " + WSO[1] + " " + WSO[2] + " " + WSO[3] + " " + WSO[4] + " " + WSO[5] + " " + WSO[6] + " " + WSO[7] + " " + WSO[8] + " " + WSO[9] + " " + WSO[10] + " " + WSO[11] + " " + WSO[12] + " " + WSO[13] + " " + WSO[14] + " " + WSO[15] + " " + WSO[16]+ " " + WSO[17]},
-        // {name: '\u200b', value: ":regional_indicator_e: " + ESO[0] + " " + ESO[1] + " " + ESO[2] + " " + ESO[3] + " " + ESO[4] + " " + ESO[5] + " " + ESO[6] + " " + ESO[7] + " " + ESO[8] + " " + ESO[9] + " " + ESO[10] + " " + ESO[11] + " " + ESO[12] + " " + ESO[13] + " " + ESO[14] + " " + ESO[15] + " " + ESO[16] + " " + ESO[17] + "\n\n"
-        //         + ":regional_indicator_r: " + RSO[0] + " " + RSO[1] + " " + RSO[2] + " " + RSO[3] + " " + RSO[4] + " " + RSO[5] + " " + RSO[6] + " " + RSO[7] + " " + RSO[8] + " " + RSO[9] + " " + RSO[10] + " " + RSO[11] + " " + RSO[12] + " " + RSO[13] + " " + RSO[14] + " " + RSO[15] + " " + RSO[16] + " " + RSO[17]},
-
-        {name: "Skill-Order", value: ":regional_indicator_q: " + QSO[0] + QSO[1] + QSO[2] + QSO[3] + QSO[4] + QSO[5] + QSO[6] + QSO[7] + QSO[8] + QSO[9] + QSO[10] + QSO[11] + QSO[12] + QSO[13] + QSO[14] + QSO[15] + QSO[16] + QSO[17] + "\n\n"
-                + ":regional_indicator_w: " + WSO[0] + WSO[1] + WSO[2] + WSO[3] + WSO[4] + WSO[5] + WSO[6] + WSO[7] + WSO[8] + WSO[9] + WSO[10] + WSO[11] + WSO[12] + WSO[13] + WSO[14] + WSO[15] + WSO[16]+ WSO[17]},
-        {name: '\u200b', value: ":regional_indicator_e: " + ESO[0] + ESO[1] + ESO[2] + ESO[3] + ESO[4] + ESO[5] + ESO[6] + ESO[7] + ESO[8] + ESO[9] + ESO[10] + ESO[11] + ESO[12] + ESO[13] + ESO[14] + ESO[15] + ESO[16] + ESO[17] + "\n\n"
-                + ":regional_indicator_r: " + RSO[0] + RSO[1] + RSO[2] + RSO[3] + RSO[4] + RSO[5] + RSO[6] + RSO[7] + RSO[8] + RSO[9] + RSO[10] + RSO[11] + RSO[12] + RSO[13] + RSO[14] + RSO[15] + RSO[16] + RSO[17]},
-        {name: "Starting Items", value: data['startingItems'].toString().split(',').join(', ')},
-        {name: "Core Items", value: data['mythicCoreItems'].toString().split(',').join(', ')},
-        {name: "Fourth Item", value: data['fourthItems'].toString().split(',').join(', ')},
-        {name: "Fifth Item", value: data['fifthItems'].toString().split(',').join(', ')},
-        {name: "Sixth Item", value: data['sixthItems'].toString().split(',').join(', ')},
+    // let runes = normalizeRunes(data['runes']);
+    // let shards = normalizeShards(data['shards']);
+    if(data) {
+        let runes = data['runes'];
+        let shards = data['shards'];
 
 
-        // + "E: " + ESO[0] + ESO[1] + ESO[2] + ESO[3] + ESO[4] + ESO[5] + ESO[6] + ESO[7] + ESO[8] + ESO[9] + ESO[10] + ESO[11] + ESO[12] + ESO[13] + ESO[14] + ESO[15] + "\n\n"
-        // + "R: " + RSO[0] + RSO[1] + RSO[2] + RSO[3] + RSO[4] + RSO[5] + RSO[6] + RSO[7] + RSO[8] + RSO[9] + RSO[10] + RSO[11] + RSO[12] + RSO[13] + RSO[14] + RSO[15]},
+        let summonerColorOne = extractSummonerColor(data['summoners'][0]);
+        let summonerColorTwo = extractSummonerColor(data['summoners'][1]);
+
+        let primaryTreeColor = extractRuneTreeColor(data['primaryTreeName']);
+        let secondaryTreeColor = extractRuneTreeColor(data['secondaryTreeName']);
+
+        let firstShardColor = extractShardColor(shards[0]);
+        let secondShardColor = extractShardColor(shards[1]);
+        let thirdShardColor = extractShardColor(shards[2]);
+
+        let QSO = visualizeSkillOrder(data['qOrder']);
+        let WSO = visualizeSkillOrder(data['wOrder']);
+        let ESO = visualizeSkillOrder(data['eOrder']);
+        let RSO = visualizeSkillOrder(data['rOrder']);
+
+        // if(data['mythicCoreItems'].length === 0) {
+        //     data['mythicCoreItems'] = data['mythicCoreItems2'];
+        // }
+
+        // console.log('mythic 1 size: ' + data['mythicCoreItems'].);
+        // console.log('mythic 2 size: ' + data['mythicCoreItems2'].size);
+
+        console.log('FIXED DATA? ' + data['mythicCoreItems'])
+
+        // let startingItemsList = formatListOfItems(data['startingItems']);
+        // let mythicCoreItemsList = formatListOfItems(data['mythicCoreItems']);
+        // let fourthItemsList = formatListOfItems(data['fourthItems']);
+        // let fifthItemsList = formatListOfItems(data['fifthItems']);
+        // let sixthItemsList = formatListOfItems(data['sixthItems']);
+
+        const build = new MessageEmbed();
+        build.setColor('#0099ff');
+        // build.setTitle(data['champion']);
+        build.setTitle(championName + " - " + championPosition + " - " + data['winrate']);
+        // build.setThumbnail(data['image']);
+        //TODO: Runes, Precision and Domination
+
+        let compactSpacing = '\n'
+        let standardSpacing = '\n\n'
+        let spacing = compactSpacing;
+
+        if (data['mythicCoreItems'].length === 0) data['mythicCoreItems'] = [errorString]
+        if (data['startingItems'].length === 0) data['startingItems'] = [errorString]
+        if (data['fourthItems'].length === 0) data['fourthItems'] = [errorString]
+        if (data['fifthItems'].length === 0) data['fifthItems'] = [errorString]
+        if (data['sixthItems'].length === 0) data['sixthItems'] = [errorString]
+
+
+        build.addFields(
+            // { name: 'Runes', value: data['primaryTreeName'] + ' & ' + data['secondaryTreeName']},
+            {name: 'Runes', value: data['primaryTreeName'] + ' & ' + data['secondaryTreeName'], inline: true},
+            {
+                name: 'Summoners',
+                value: summonerColorOne + " " + data['summoners'][0] + spacing + summonerColorTwo + " " + data['summoners'][1],
+                inline: true
+            },
+            // { name: "Keystone", value: "<:yellow_square:933963482699825223>" + " " + runes[0] + "\n NAGLIS IS DA BEST"},
+            // { name: "Keystone", value: primaryTreeColor + " " + runes[0]},
+            // { name: "Primary", value: primaryTreeColor + " " + runes[1] + '\n\n' + primaryTreeColor + " " + runes[2] + '\n\n' + primaryTreeColor + " " + runes[3], inline: true},
+            // { name: "Secondary", value: secondaryTreeColor + " " + runes[4] + '\n\n' + secondaryTreeColor + " " + runes[5], inline: true},
+            // { name: "Shards", value: firstShardColor + " " + shards[0] + "\n\n" + secondShardColor + " " + shards[1] + "\n\n" + thirdShardColor + " "  + shards[2]},
+
+            {name: "Keystone", value: primaryTreeColor + " " + runes[0] + " - " + getRunePosition(runes[0])},
+            {
+                name: "Primary",
+                value: primaryTreeColor + " " + runes[1] + " - " + getRunePosition(runes[1]) + spacing + primaryTreeColor + " " + runes[2] + " - " + getRunePosition(runes[2]) + spacing + primaryTreeColor + " " + runes[3] + " - " + getRunePosition(runes[3]),
+                inline: true
+            },
+            {
+                name: "Secondary",
+                value: secondaryTreeColor + " " + runes[4] + " - " + getRunePosition(runes[4]) + spacing + secondaryTreeColor + " " + runes[5] + " - " + getRunePosition(runes[5]),
+                inline: true
+            },
+            {
+                name: "Shards",
+                value: firstShardColor + " " + shards[0] + spacing + secondShardColor + " " + shards[1] + spacing + thirdShardColor + " " + shards[2]
+            },
+
+            // {name: "Skill-Order", value: ":regional_indicator_q: " + QSO[0] + QSO[1] + QSO[2] + QSO[3] + QSO[4] + QSO[5] + QSO[6] + QSO[7] + QSO[8] + QSO[9] + QSO[10] + QSO[11] + QSO[12] + QSO[13] + QSO[14] + QSO[15] + "\n\n"
+            // + ":regional_indicator_w: " + WSO[0] + WSO[1] + WSO[2] + WSO[3] + WSO[4] + WSO[5] + WSO[6] + WSO[7] + WSO[8] + WSO[9] + WSO[10] + WSO[11] + WSO[12] + WSO[13] + WSO[14] + WSO[15]},
+            // {name: '\u200b', value: ":regional_indicator_e: " + ESO[0] + ESO[1] + ESO[2] + ESO[3] + ESO[4] + ESO[5] + ESO[6] + ESO[7] + ESO[8] + ESO[9] + ESO[10] + ESO[11] + ESO[12] + ESO[13] + ESO[14] + ESO[15] + "\n\n"
+            //         + ":regional_indicator_r: " + RSO[0] + RSO[1] + RSO[2] + RSO[3] + RSO[4] + RSO[5] + RSO[6] + RSO[7] + RSO[8] + RSO[9] + RSO[10] + RSO[11] + RSO[12] + RSO[13] + RSO[14] + RSO[15]},
+
+            // {name: "Skill-Order", value: ":regional_indicator_q: " + QSO[0] + " " + QSO[1] + " " + QSO[2] + " " + QSO[3] + " " + QSO[4] + " " + QSO[5] + " " + QSO[6] + " " + QSO[7] + " " + QSO[8] + " " + QSO[9] + " " + QSO[10] + " " + QSO[11] + " " + QSO[12] + " " + QSO[13] + " " + QSO[14] + " " + QSO[15] + " " + QSO[16] + " " + QSO[17] + "\n\n"
+            //         + ":regional_indicator_w: " + WSO[0] + " " + WSO[1] + " " + WSO[2] + " " + WSO[3] + " " + WSO[4] + " " + WSO[5] + " " + WSO[6] + " " + WSO[7] + " " + WSO[8] + " " + WSO[9] + " " + WSO[10] + " " + WSO[11] + " " + WSO[12] + " " + WSO[13] + " " + WSO[14] + " " + WSO[15] + " " + WSO[16]+ " " + WSO[17]},
+            // {name: '\u200b', value: ":regional_indicator_e: " + ESO[0] + " " + ESO[1] + " " + ESO[2] + " " + ESO[3] + " " + ESO[4] + " " + ESO[5] + " " + ESO[6] + " " + ESO[7] + " " + ESO[8] + " " + ESO[9] + " " + ESO[10] + " " + ESO[11] + " " + ESO[12] + " " + ESO[13] + " " + ESO[14] + " " + ESO[15] + " " + ESO[16] + " " + ESO[17] + "\n\n"
+            //         + ":regional_indicator_r: " + RSO[0] + " " + RSO[1] + " " + RSO[2] + " " + RSO[3] + " " + RSO[4] + " " + RSO[5] + " " + RSO[6] + " " + RSO[7] + " " + RSO[8] + " " + RSO[9] + " " + RSO[10] + " " + RSO[11] + " " + RSO[12] + " " + RSO[13] + " " + RSO[14] + " " + RSO[15] + " " + RSO[16] + " " + RSO[17]},
+
+            {
+                name: "Skill-Order",
+                value: ":regional_indicator_q: " + QSO[0] + QSO[1] + QSO[2] + QSO[3] + QSO[4] + QSO[5] + QSO[6] + QSO[7] + QSO[8] + QSO[9] + QSO[10] + QSO[11] + QSO[12] + QSO[13] + QSO[14] + QSO[15] + QSO[16] + QSO[17] + "\n\n"
+                    + ":regional_indicator_w: " + WSO[0] + WSO[1] + WSO[2] + WSO[3] + WSO[4] + WSO[5] + WSO[6] + WSO[7] + WSO[8] + WSO[9] + WSO[10] + WSO[11] + WSO[12] + WSO[13] + WSO[14] + WSO[15] + WSO[16] + WSO[17]
+            },
+            {
+                name: '\u200b',
+                value: ":regional_indicator_e: " + ESO[0] + ESO[1] + ESO[2] + ESO[3] + ESO[4] + ESO[5] + ESO[6] + ESO[7] + ESO[8] + ESO[9] + ESO[10] + ESO[11] + ESO[12] + ESO[13] + ESO[14] + ESO[15] + ESO[16] + ESO[17] + "\n\n"
+                    + ":regional_indicator_r: " + RSO[0] + RSO[1] + RSO[2] + RSO[3] + RSO[4] + RSO[5] + RSO[6] + RSO[7] + RSO[8] + RSO[9] + RSO[10] + RSO[11] + RSO[12] + RSO[13] + RSO[14] + RSO[15] + RSO[16] + RSO[17]
+            },
+            {name: "Starting Items", value: data['startingItems'].toString().split(',').join(', ')},
+            {name: "Core Items", value: data['mythicCoreItems'].toString().split(',').join(', ')},
+            {name: "Fourth Item", value: data['fourthItems'].toString().split(',').join(', ')},
+            {name: "Fifth Item", value: data['fifthItems'].toString().split(',').join(', ')},
+            {name: "Sixth Item", value: data['sixthItems'].toString().split(',').join(', ')},
 
 
 
-        // {name: '\u200b', value: '\u200b'},
-        // { name: "\u200b", value: "<:yellow_square:933963482699825223>" + " " + runes[1], inline: true},
-        // { name: "1st Secondary", value: runes[4], inline: true},
-        // {name: '\u200b', value: '\u200b'},
-        // { name: "2nd Primary", value: "<:yellow_square:933963482699825223>" + " " + runes[2], inline: true},
-        // { name: "2nd Secondary", value: runes[5], inline: true},
-        // {name: '\u200b', value: '\u200b'},
-        // { name: "3rd Primary", value: "<:yellow_square:933963482699825223>" + " " + runes[3]}
-        // { name: runes[1], inline: true },
-    )
-    return build;
+            // + "E: " + ESO[0] + ESO[1] + ESO[2] + ESO[3] + ESO[4] + ESO[5] + ESO[6] + ESO[7] + ESO[8] + ESO[9] + ESO[10] + ESO[11] + ESO[12] + ESO[13] + ESO[14] + ESO[15] + "\n\n"
+            // + "R: " + RSO[0] + RSO[1] + RSO[2] + RSO[3] + RSO[4] + RSO[5] + RSO[6] + RSO[7] + RSO[8] + RSO[9] + RSO[10] + RSO[11] + RSO[12] + RSO[13] + RSO[14] + RSO[15]},
 
+
+            // {name: '\u200b', value: '\u200b'},
+            // { name: "\u200b", value: "<:yellow_square:933963482699825223>" + " " + runes[1], inline: true},
+            // { name: "1st Secondary", value: runes[4], inline: true},
+            // {name: '\u200b', value: '\u200b'},
+            // { name: "2nd Primary", value: "<:yellow_square:933963482699825223>" + " " + runes[2], inline: true},
+            // { name: "2nd Secondary", value: runes[5], inline: true},
+            // {name: '\u200b', value: '\u200b'},
+            // { name: "3rd Primary", value: "<:yellow_square:933963482699825223>" + " " + runes[3]}
+            // { name: runes[1], inline: true },
+        )
+            .setFooter({ text: 'Data provided by U.GG', iconURL: 'https://www.saashub.com/images/app/service_logos/173/qha2v2ag9ze6/large.png?1617663657' });
+        return build;
+    } else {
+        build.addFields(
+            {name: errorString, value: '\u200b'},
+        )
+    }
 }
 
 

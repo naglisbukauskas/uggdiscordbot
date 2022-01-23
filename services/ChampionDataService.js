@@ -447,28 +447,64 @@ async function fetchPairsNotPopulated() {
             let data;
 
             uri =  await uriUtilities.buildUriForChampionAndPosition(champion, position);
-            if(champion !== 'aphelios' && position !== 'jungle') {
+            // uri =  await uriUtilities.buildUriForChampionAndPosition('vayne', 'bot');
+
+            // if(champion !== 'aphelios' && position !== 'jungle') {
                 try {
                     console.log(uri);
                     const browser = await puppeteer.launch();
                     const [page] = await browser.pages();
                     await page.setViewport({width: 400, height: 400})
-                    await page.goto(uri)
+                    await page.goto(uri, { waitUntil: 'networkidle0' })
+
 
                     data = await page.evaluate(async () => {
+                        // // console.log('in evaluate')
+                        // let retObject = {};
+                        //
+                        // // let runesArray = Array.from(document.querySelectorAll('div.perk.perk-active'));
+                        // // if(runesArray) {
+                        // //     retObject['runes'] = runesArray.map(x => x.innerHTML).splice(0, 6)).map(x => x.slice(x.indexOf('alt=') + 5, x.indexOf(">") - 1));
+                        // // }
+                        // // let shardsArray = Array.from(document.querySelectorAll('div.shard.shard-active'));
+                        // // if(shardsArray) {
+                        // //     retObject['shards'] = shardsArray.map(x => x.innerHTML).splice(0, 3)).map(x => x.slice(x.indexOf('alt=') + 5, x.indexOf(">") - 1));
+                        // // }
+                        // // retObject["primaryTreeName"] = document.querySelector('div.rune-trees-container-2.media-query.media-query_MOBILE_LARGE__DESKTOP_LARGE > div > div.rune-tree_v2.primary-tree > div.rune-tree_header > div.perk-style-title').innerHTML;
+                        // // retObject["secondaryTreeName"] = document.querySelector('div.rune-trees-container-2.media-query.media-query_MOBILE_LARGE__DESKTOP_LARGE > div.secondary-tree > div > div.rune-tree_v2 > div.rune-tree_header > div.perk-style-title').innerHTML;
+                        //
+                        // retObject['runes'] = (Array.from(document.querySelectorAll('div.perk.perk-active')).map(x => x.innerHTML).splice(0, 6)).map(x => x.slice(x.indexOf('alt=') + 5, x.indexOf(">") - 1));
+                        // retObject['shards'] = (Array.from(document.querySelectorAll('div.shard.shard-active')).map(x => x.innerHTML).splice(0, 3)).map(x => x.slice(x.indexOf('alt=') + 5, x.indexOf(">") - 1));
+                        // retObject['primaryTreeName'] = document.querySelector('div.rune-trees-container-2.media-query.media-query_MOBILE_LARGE__DESKTOP_LARGE > div > div.rune-tree_v2.primary-tree > div.rune-tree_header > div.perk-style-title').innerHTML;
+                        // retObject['secondaryTreeName'] = document.querySelector('div.rune-trees-container-2.media-query.media-query_MOBILE_LARGE__DESKTOP_LARGE > div.secondary-tree > div > div.rune-tree_v2 > div.rune-tree_header > div.perk-style-title').innerHTML;
+                        //
+                        // let skillOrderArray = Array.from(document.querySelectorAll('div.skill-path-container > div.skill-order-row > div.skill-order'));
+                        // if(skillOrderArray) {
+                        //     retObject['skillOrder'] = skillOrderArray.map(x => x.innerHTML);
+                        // }
+                        //
+                        // retObject['image'] = document.querySelector('img.champion-image');
+                        // retObject['position'] = document.querySelector('span.champion-title').innerHTML;
+                        // retObject['winrate'] = document.querySelector('div.win-rate > div.value').innerHTML;
+                        // retObject['summoners'] = (Array.from(document.querySelectorAll('div.content-section_content.summoner-spells > div > img')).map(x => x.alt)).map(x => x.split(" ")[2]);
+                        //
+                        //
+                        // return retObject;
                         return {
                             runes: (Array.from(document.querySelectorAll('div.perk.perk-active')).map(x => x.innerHTML).splice(0, 6)).map(x => x.slice(x.indexOf('alt=') + 5, x.indexOf(">") - 1)),
                             shards: (Array.from(document.querySelectorAll('div.shard.shard-active')).map(x => x.innerHTML).splice(0, 3)).map(x => x.slice(x.indexOf('alt=') + 5, x.indexOf(">") - 1)),
                             primaryTreeName: document.querySelector('div.rune-trees-container-2.media-query.media-query_MOBILE_LARGE__DESKTOP_LARGE > div > div.rune-tree_v2.primary-tree > div.rune-tree_header > div.perk-style-title').innerHTML,
                             secondaryTreeName: document.querySelector('div.rune-trees-container-2.media-query.media-query_MOBILE_LARGE__DESKTOP_LARGE > div.secondary-tree > div > div.rune-tree_v2 > div.rune-tree_header > div.perk-style-title').innerHTML,
                             skillOrder: Array.from(document.querySelectorAll('div.skill-path-container > div.skill-order-row > div.skill-order')).map(x => x.innerHTML),
-                            image: document.querySelector('img.champion-image').src,
+                            image: document.querySelector('img.champion-image'),
                             position: document.querySelector('span.champion-title').innerHTML,
                             winrate: document.querySelector('div.win-rate > div.value').innerHTML,
                             summoners: (Array.from(document.querySelectorAll('div.content-section_content.summoner-spells > div > img')).map(x => x.alt)).map(x => x.split(" ")[2]),
-
                         };
                     });
+
+                    console.log(data);
+                    // break;
 
                     let defaultRole = false;
                     let splitUrl = page.url().split("/")
@@ -484,10 +520,39 @@ async function fetchPairsNotPopulated() {
                     let fifthItemOptions = await page.$$('div[class="content-section content-section_no-padding recommended-build_items media-query media-query_MOBILE_SMALL__MOBILE_LARGE"] > div[class="content-section_content item-options item-options-2"] > div[class="item-option-list"] > div[class="item-option"] > div[class="item-img"]');
                     let sixthItemOptions = await page.$$('div[class="content-section content-section_no-padding recommended-build_items media-query media-query_MOBILE_SMALL__MOBILE_LARGE"] > div[class="content-section_content item-options item-options-3"] > div[class="item-option-list"] > div[class="item-option"] > div[class="item-img"]');
 
-                    let qLevelOrder = extractSkillOrder(data["skillOrder"][0]);
-                    let wLevelOrder = extractSkillOrder(data["skillOrder"][1]);
-                    let eLevelOrder = extractSkillOrder(data["skillOrder"][2]);
-                    let rLevelOrder = extractSkillOrder(data["skillOrder"][3]);
+
+                    //TODO: THESE NEED TO BE SURROUNDED BY NULL CHECKS
+
+                    // if(data["skillOrder"]) {
+                    //     let qLevelOrder = extractSkillOrder(data["skillOrder"][0]);
+                    // }
+                    //
+                    // if(data["skillOrder"]) {
+                    //     let wLevelOrder = extractSkillOrder(data["skillOrder"][1]);
+                    // }
+                    //
+                    // if(data["skillOrder"][2]) {
+                    //     let eLevelOrder = extractSkillOrder(data["skillOrder"][2]);
+                    // }
+                    //
+                    // if(data["skillOrder"][3]) {
+                    //     let rLevelOrder = extractSkillOrder(data["skillOrder"][3]);
+                    // }
+
+                    let qLevelOrder
+                    let wLevelOrder
+                    let eLevelOrder
+                    let rLevelOrder
+
+                    console.log(data);
+
+                    if(data["skillOrder"]) {
+                       qLevelOrder = extractSkillOrder(data["skillOrder"][0]);
+                       wLevelOrder = extractSkillOrder(data["skillOrder"][1]);
+                       eLevelOrder = extractSkillOrder(data["skillOrder"][2]);
+                       rLevelOrder = extractSkillOrder(data["skillOrder"][3]);
+                    }
+
 
                     data['qOrder'] = qLevelOrder;
                     data['wOrder'] = wLevelOrder;
@@ -530,7 +595,7 @@ async function fetchPairsNotPopulated() {
                 } catch (error) {
                     console.error(error);
                 }
-            }
+            // }
 
             console.log(data);
             console.log('Finished for ' + champion + " " + position);
@@ -547,7 +612,7 @@ async function fetchPairsNotPopulated() {
                     await builds.insertOne(data);
                 }
             }
-            // await databaseClient.close();
+            await databaseClient.close();
 
             // championData.push(data);
 

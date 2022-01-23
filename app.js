@@ -60,7 +60,7 @@ client.on("messageCreate", async (message) => {
 //   });
 
 // championDataService.funnyGoofyTest();
-championDataService.fetchPairsNotPopulated().then(r => console.log('nagils'));
+// championDataService.fetchPairsNotPopulated().then(r => console.log('nagils'));
 
 module.exports.client = {
     client,
