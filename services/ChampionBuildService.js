@@ -344,7 +344,7 @@ function formatDataForResponse(data) {
 
     // let runes = normalizeRunes(data['runes']);
     // let shards = normalizeShards(data['shards']);
-    if(data) {
+    if(data !== null) {
         let runes = data['runes'];
         let shards = data['shards'];
 
@@ -475,6 +475,7 @@ function formatDataForResponse(data) {
         build.addFields(
             {name: errorString, value: '\u200b'},
         )
+        return build;
     }
 }
 
