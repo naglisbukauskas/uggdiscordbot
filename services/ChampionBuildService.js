@@ -11,6 +11,7 @@ async function fetchAndProcessChampionData(message) {
     let champion;
     let position;
 
+
     const uri = "mongodb+srv://discordbot:" + process.env.DATABASE_PASSWORD + "@botcluster.1j2yr.mongodb.net/champion_data?retryWrites=true&w=majority";
     // const databaseClient = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
     const databaseClient = new MongoClient(uri);
